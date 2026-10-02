@@ -46,7 +46,12 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch: {} # manual trigger uses the branch/tag selected in the Actions UI
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Optional existing vX.Y.Z tag to rebuild with this workflow and upload to its release'
+        required: false
+        type: string
 
 permissions:
   contents: write # needed to upload release assets
@@ -56,12 +61,22 @@ jobs:
     runs-on: macos-14 # Apple Silicon runner; builds both arches via ANSWERCUE_BUILD_ALL_MAC_ARCHES
     timeout-minutes: 90
     steps:
+      - name: Validate release rebuild tag
+        if: inputs.release_tag != ''
+        env:
+          RELEASE_TAG: ${{ inputs.release_tag }}
+        run: |
+          if [[ ! "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::Use an existing semantic version tag such as v2.8.0."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: false
-          # Defaults to the triggering ref (tag on push, selected ref on dispatch).
-          # No untrusted-input ref interpolation.
+          # Rebuild the exact release source while allowing CI-only fixes on main.
+          ref: ${{ inputs.release_tag || github.ref }}
 
       - name: Setup Node
         uses: actions/setup-node@v4
@@ -78,7 +93,10 @@ jobs:
         run: npm ci
 
       - name: Install macOS DMG builder
-        run: npm install --no-save --no-package-lock create-dmg@8.1.0
+        run: |
+          # Do not let an untracked tool install re-resolve the app's dependencies.
+          npm install --prefix "$RUNNER_TEMP/answercue-dmg-tools" --no-package-lock create-dmg@8.1.0
+          echo "$RUNNER_TEMP/answercue-dmg-tools/node_modules/.bin" >> "$GITHUB_PATH"
 
       - name: Import Developer ID signing certificate
         env:
@@ -141,7 +159,7 @@ jobs:
           echo "MACOS_NOTARIZATION_AVAILABLE=false" >> "$GITHUB_ENV"
 
       - name: Require signing for tagged macOS releases
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
         run: |
           set -euo pipefail
           if [ "${MACOS_SIGNING_AVAILABLE:-false}" != "true" ]; then
@@ -236,9 +254,10 @@ jobs:
           if-no-files-found: error
 
       - name: Upload artifacts to GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_TAG: ${{ inputs.release_tag || github.ref_name }}
         run: |
           set -euo pipefail
           shopt -s nullglob
@@ -247,4 +266,4 @@ jobs:
             echo "No macOS release assets found in release/"
             exit 1
           fi
-          gh release upload "$GITHUB_REF_NAME" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber
+          gh release upload "$RELEASE_TAG" "${assets[@]}" --repo "$GITHUB_REPOSITORY" --clobber

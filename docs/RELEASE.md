@@ -52,6 +52,18 @@ gh release edit vX.Y.Z --repo FarzamHejaziK/AnswerCue --draft=false --latest
 
 Do not publish partial or failed platform builds as the latest release.
 
+For a macOS CI-only fix after a tag has been created, push the workflow fix to
+`main` and rebuild the existing source tag without moving it:
+
+```bash
+gh workflow run release-macos.yml --repo FarzamHejaziK/AnswerCue \
+  --ref main -f release_tag=vX.Y.Z
+```
+
+The workflow checks out that exact tag, requires signing and notarization, and
+uploads verified assets to its existing release. DMG tooling is installed in an
+isolated runner directory so it cannot change the app's locked dependencies.
+
 ## Update Behavior
 
 AnswerCue checks the GitHub Releases feed for newer versions. Updates are shown
