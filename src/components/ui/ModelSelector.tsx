@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { ChevronDown, Check, Cloud, Terminal, Monitor, Server, Plus } from 'lucide-react';
+import { ChevronDown, Check, Cloud, Terminal, Monitor, Server, Plus, Search } from 'lucide-react';
 import { getCodexCliModelDisplayName, getCloudModelDisplayName, isAllowedStandardCloudModel, STANDARD_CLOUD_MODELS, prettifyModelId } from '../../utils/modelUtils';
 
 interface ModelSelectorProps {
@@ -7,6 +7,7 @@ interface ModelSelectorProps {
     onSelectModel: (model: string) => void;
     placement?: 'up' | 'down';
     className?: string;
+    variant?: 'default' | 'workspace';
 }
 
 interface CustomProvider {
@@ -15,13 +16,21 @@ interface CustomProvider {
     curlCommand: string;
 }
 
-export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSelectModel, placement = 'up', className = '' }) => {
+const providerLabels: Record<string, string> = { openai: 'OpenAI', claude: 'Anthropic', gemini: 'Google' };
+
+export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSelectModel, placement = 'up', className = '', variant = 'default' }) => {
     const [isOpen, setIsOpen] = useState(false);
+    const [search, setSearch] = useState('');
+    const isWorkspace = variant === 'workspace';
     const [activeTab, setActiveTab] = useState<'cloud' | 'custom' | 'local'>('cloud');
     const [ollamaModels, setOllamaModels] = useState<string[]>([]);
     const [customProviders, setCustomProviders] = useState<CustomProvider[]>([]);
     const [cloudModels, setCloudModels] = useState<{ id: string; name: string; desc: string; provider: string }[]>([]);
     const dropdownRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (!isOpen) setSearch('');
+    }, [isOpen]);
 
     // Close on click outside
     useEffect(() => {
@@ -114,10 +123,23 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSe
         return model;
     };
 
+    const visibleCloudModels = cloudModels.filter(model => !isWorkspace ||
+        `${model.name} ${model.id} ${model.provider} ${providerLabels[model.provider] || ''}`.toLowerCase().includes(search.trim().toLowerCase()));
+
     return (
-        <div className="relative" ref={dropdownRef}>
+        <div className={`relative ${isWorkspace ? 'workspace-model-selector' : ''}`} ref={dropdownRef} onKeyDown={event => {
+            if (event.key === 'Escape' && isOpen) {
+                event.preventDefault();
+                event.stopPropagation();
+                setIsOpen(false);
+                dropdownRef.current?.querySelector('button')?.focus();
+            }
+        }}>
             <button
                 onClick={() => setIsOpen(!isOpen)}
+                aria-label={`Choose AI model: ${getModelDisplayName(currentModel)}`}
+                aria-expanded={isOpen}
+                title={getModelDisplayName(currentModel)}
                 className={`flex items-center gap-2 px-3 py-1.5 bg-bg-input hover:bg-bg-elevated border border-border-subtle rounded-lg transition-colors text-xs font-medium text-text-primary max-w-[150px] ${className}`}
             >
                 <span className="truncate">{getModelDisplayName(currentModel)}</span>
@@ -126,8 +148,9 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSe
 
             {isOpen && (
                 <div className={`absolute left-0 w-64 bg-bg-item-surface border border-border-subtle rounded-xl shadow-xl z-50 overflow-hidden animated fadeIn ${placement === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'}`}>
+                    {isWorkspace && <label className="workspace-model-search"><Search size={14} /><input autoFocus value={search} onChange={event => setSearch(event.target.value)} placeholder="Find a model" aria-label="Find a model" /></label>}
                     {/* Tabs */}
-                    <div className="flex border-b border-border-subtle bg-bg-input/50">
+                    <div className={`flex border-b border-border-subtle bg-bg-input/50 ${isWorkspace && customProviders.length === 0 && ollamaModels.length === 0 ? 'hidden' : ''}`}>
                         <button
                             onClick={() => setActiveTab('cloud')}
                             className={`flex-1 py-2 text-[10px] font-bold uppercase tracking-wider transition-colors ${activeTab === 'cloud' ? 'text-accent-primary bg-bg-item-surface border-t-2 border-t-accent-primary' : 'text-text-secondary hover:text-text-primary'}`}
@@ -152,6 +175,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSe
                     <div className="p-2 max-h-64 overflow-y-auto">
 
                         {/* Cloud Models */}
+                        {isWorkspace && activeTab === 'cloud' && cloudModels.length > 0 && visibleCloudModels.length === 0 && <p className="p-3 text-xs text-text-tertiary">No matching models.</p>}
                         {activeTab === 'cloud' && (
                             <div className="space-y-1">
                                 {cloudModels.length === 0 ? (
@@ -160,13 +184,14 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSe
                                         <p className="text-[10px] opacity-70">Add API keys in Settings.</p>
                                     </div>
                                 ) : (
-                                    cloudModels.map((m, idx) => {
-                                        const prevProvider = idx > 0 ? cloudModels[idx - 1].provider : null;
+                                    visibleCloudModels.map((m, idx, visibleModels) => {
+                                        const prevProvider = idx > 0 ? visibleModels[idx - 1].provider : null;
                                         const showDivider = prevProvider && prevProvider !== m.provider;
                                         const icon = m.provider === 'gemini' ? <Monitor size={14} /> : <Cloud size={14} />;
                                         return (
                                             <React.Fragment key={m.id}>
                                                 {showDivider && <div className="h-px bg-border-subtle my-1" />}
+                                                {isWorkspace && prevProvider !== m.provider && <p className="workspace-model-provider">{providerLabels[m.provider] || m.provider}</p>}
                                                 <ModelOption
                                                     id={m.id}
                                                     name={m.name}

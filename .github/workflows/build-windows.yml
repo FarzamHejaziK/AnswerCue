@@ -59,13 +59,31 @@ jobs:
           AZURE_CODESIGNING_PUBLISHER_NAME: ${{ secrets.AZURE_CODESIGNING_PUBLISHER_NAME }}
         run: |
           if ("${{ startsWith(github.ref, 'refs/tags/v') }}" -eq "true") {
-            npx electron-builder --config electron-builder.windows.cjs --win nsis:x64 --publish always
-          } else {
-            npx electron-builder --config electron-builder.windows.cjs --win nsis:x64 --publish never
+            $required = @('AZURE_TENANT_ID', 'AZURE_CLIENT_ID', 'AZURE_CLIENT_SECRET', 'AZURE_CODESIGNING_ENDPOINT', 'AZURE_CODESIGNING_ACCOUNT_NAME', 'AZURE_CODESIGNING_PROFILE_NAME', 'AZURE_CODESIGNING_PUBLISHER_NAME')
+            foreach ($name in $required) {
+              if ([string]::IsNullOrWhiteSpace([Environment]::GetEnvironmentVariable($name))) {
+                throw "Missing signing configuration: $name. Refusing to publish an unsigned Windows release."
+              }
+            }
           }
+          npx electron-builder --config electron-builder.windows.cjs --win nsis:x64 --publish never
 
       - name: Verify packaged renderer exists
         run: node scripts/verify-package-inputs.js release/win-unpacked/resources/app.asar
+
+      - name: Verify Windows release signatures
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          $installers = @(Get-ChildItem -Path release/*.exe -File)
+          if ($installers.Count -eq 0) { throw 'No Windows installer found.' }
+          $files = @('release/win-unpacked/AnswerCue.exe') + @($installers.FullName)
+          foreach ($file in $files) {
+            $signature = Get-AuthenticodeSignature -FilePath $file
+            if ($signature.Status -ne 'Valid') {
+              throw "Invalid Authenticode signature for ${file}: $($signature.Status)"
+            }
+            Write-Host "Verified: $file ($($signature.SignerCertificate.Subject))"
+          }
 
       - name: Upload Windows installer
         uses: actions/upload-artifact@v4
@@ -73,5 +91,16 @@ jobs:
           name: answercue-windows-x64-installer
           path: |
             release/*.exe
+            release/*.blockmap
             release/latest.yml
           if-no-files-found: error
+
+      - name: Upload verified Windows release assets
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $assets = @(Get-ChildItem -Path release/*.exe, release/*.blockmap, release/latest.yml -File)
+          if ($assets.Count -eq 0) { throw 'No Windows release assets found.' }
+          gh release upload "$env:GITHUB_REF_NAME" $assets.FullName --repo "$env:GITHUB_REPOSITORY" --clobber
+          if ($LASTEXITCODE -ne 0) { throw 'Windows release upload failed.' }

@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.8.0] - 2026-10-02
+
+### Workspace Refresh
+
+- Refined light and dark themes with neutral surfaces and AnswerCue accent colors, without changing the live interview shell's appearance.
+- Added collapsible interview and settings sidebars, interview filtering, and responsive layouts for smaller windows.
+- Reworked prep and follow-up chat with a growing composer, clearer document attachments, copy-response actions, and jump-to-latest navigation.
+- Enabled sending a document without accompanying text; sent documents leave the composer and remain in the conversation's context.
+- Improved Markdown code blocks and tables, searchable model selection, and compact audio selectors.
+- Improved Settings navigation, keyboard-operable switches, focus handling, and Escape behavior. Fixed duplicate animation keys and floating Help overlap.
+
+### Models and Requests
+
+- Added GPT 6 Astra, GPT 6.1 Sol, GPT 6 Luna, GPT 5.6 Sol/Terra/Luna, and Claude Opus 5/5.5 and Sonnet 5/5.5 to the shared model catalog.
+- Centralized model capabilities and request parameters, including reasoning effort, output limits, and first-token budgets.
+- Made screenshot requests honor the selected model before attempting provider fallbacks.
+
+### Release and Verification
+
+- Versioned Windows x64 installer and macOS Intel/Apple Silicon DMG and ZIP builds.
+- Tagged Windows builds now require signing credentials and verify both application and installer signatures before release upload. macOS retains Developer ID signing, notarization, and stapling verification.
+- Added a development-only UI fixture with synthetic data for repeatable light/dark and responsive checks.
+- Type-check, renderer build, and automated suite passed locally: 1,025 passing tests, 41 skipped, no failures.
+
+See [.github/releases/v2.8.0.md](.github/releases/v2.8.0.md) for platform details and known limitations.
+
 ## [2.7.3] - 2026-06-15
 
 ### Summary

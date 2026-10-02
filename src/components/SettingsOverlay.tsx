@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import packageJson from '../../package.json';
 import {
     X, Mic, Speaker, Monitor, Keyboard, User, LifeBuoy, LogOut, Upload, FileText,
@@ -390,6 +390,34 @@ const normalizeSttProvider = (provider?: string): VisibleSttProvider => {
 };
 
 const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, initialTab = 'general' }) => {
+    const dialogRef = useRef<HTMLDivElement>(null);
+    const onCloseRef = useRef(onClose);
+    useEffect(() => { onCloseRef.current = onClose; }, [onClose]);
+    useEffect(() => {
+        if (!isOpen) return;
+        const previouslyFocused = document.activeElement as HTMLElement | null;
+        const frame = requestAnimationFrame(() => dialogRef.current?.querySelector<HTMLButtonElement>('button')?.focus());
+        const handleKey = (event: KeyboardEvent) => {
+            if (event.defaultPrevented) return;
+            if (event.key === 'Escape') {
+                event.preventDefault();
+                onCloseRef.current();
+            }
+            if (event.key === 'Tab') {
+                const elements = Array.from(dialogRef.current?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex="0"]') || []).filter(element => element.offsetParent !== null);
+                const first = elements[0];
+                const last = elements[elements.length - 1];
+                if (event.shiftKey && (document.activeElement === first || !dialogRef.current?.contains(document.activeElement))) { event.preventDefault(); last?.focus(); }
+                if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+            }
+        };
+        document.addEventListener('keydown', handleKey);
+        return () => {
+            cancelAnimationFrame(frame);
+            document.removeEventListener('keydown', handleKey);
+            previouslyFocused?.focus();
+        };
+    }, [isOpen]);
     const isLight = useResolvedTheme() === 'light';
     const [activeTab, setActiveTab] = useState(() => normalizeSettingsTab(initialTab));
 
@@ -1368,15 +1396,20 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
         <AnimatePresence>
             {isOpen && (
                 <motion.div
+                    key="settings-dialog"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
                     transition={{ duration: 0.2 }}
                     id="settings-backdrop"
-                    className={`fixed inset-0 z-50 flex items-center justify-center p-8 transition-colors duration-150 ${isPreviewingOpacity ? 'bg-transparent backdrop-blur-none' : 'bg-black/60 backdrop-blur-sm'}`}
+                    className={`answercue-settings fixed inset-0 z-[300] flex items-center justify-center transition-colors duration-150 ${isPreviewingOpacity ? 'bg-transparent backdrop-blur-none' : 'bg-black/45 backdrop-blur-sm'}`}
                 >
                     <motion.div
                         id="settings-panel-wrapper"
+                        ref={dialogRef}
+                        role="dialog"
+                        aria-modal="true"
+                        aria-label="Settings"
                         initial={{ scale: 0.94, opacity: 0, y: 20 }}
                         animate={{ scale: 1, opacity: 1, y: 0 }}
                         exit={{ scale: 0.94, opacity: 0, y: 20 }}
@@ -1393,11 +1426,12 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                             className="flex w-full h-full"
                             style={{ visibility: isPreviewingOpacity ? 'hidden' : 'visible' }}
                         >
+                        <button className="workspace-icon-button workspace-settings-close" onClick={onClose} aria-label="Close settings" title="Close settings"><X size={17} /></button>
                         {/* Sidebar */}
-                        <div className="w-64 bg-bg-sidebar flex flex-col border-r border-border-subtle">
+                        <div className="workspace-settings-nav">
                             <div className="p-6">
                                 <h2 className="font-semibold text-gray-400 text-xs uppercase tracking-wider mb-2">Settings</h2>
-                                <nav className="space-y-1">
+                                <nav className="space-y-1" aria-label="Settings sections">
                                     <button
                                         onClick={() => setActiveTab('general')}
                                         className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors flex items-center gap-3 ${activeTab === 'general' ? 'bg-bg-item-active text-text-primary' : 'text-text-secondary hover:text-text-primary hover:bg-bg-item-active/50'}`}
@@ -1478,7 +1512,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                         </div>
 
                         {/* Content */}
-                        <div className="flex-1 bg-bg-main overflow-y-auto p-8 relative">
+                        <div className="workspace-settings-content">
                             {activeTab === 'general' && (
                                 <div className="space-y-6 animated fadeIn">
                                     <div className="space-y-3.5">
@@ -1511,7 +1545,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                     AnswerCue is currently {isUndetectable ? 'undetectable' : 'detectable'} by screen-sharing. <button className="text-accent-primary hover:underline">Supported apps here</button>
                                                 </p>
                                             </div>
-                                            <div
+                                            <button type="button" role="switch" aria-checked={isUndetectable} aria-label="Undetectable mode"
                                                 onClick={() => {
                                                     const newState = !isUndetectable;
                                                     setIsUndetectable(newState);
@@ -1522,7 +1556,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                 className={`w-11 h-6 rounded-full relative transition-colors ${isUndetectable ? 'bg-accent-primary' : 'bg-bg-toggle-switch border border-border-muted'}`}
                                             >
                                                 <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isUndetectable ? 'translate-x-5' : 'translate-x-0'}`} />
-                                            </div>
+                                            </button>
                                         </div>
 
                                         {/* Mouse Passthrough Toggle — Adapted from public PR #113 */}
@@ -1536,7 +1570,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                     Overlay stays visible but lets all mouse clicks pass through to the app beneath.
                                                 </p>
                                             </div>
-                                            <div
+                                            <button type="button" role="switch" aria-checked={isMousePassthrough} aria-label="Mouse passthrough"
                                                 onClick={() => {
                                                     const newState = !isMousePassthrough;
                                                     setIsMousePassthrough(newState);
@@ -1545,7 +1579,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                 className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer ${isMousePassthrough ? 'bg-sky-500' : 'bg-bg-toggle-switch border border-border-muted'}`}
                                             >
                                                 <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${isMousePassthrough ? 'translate-x-5' : 'translate-x-0'}`} />
-                                            </div>
+                                            </button>
                                         </div>
 
                                         <div>
@@ -1571,7 +1605,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                             <p className="text-xs text-text-secondary mt-0.5">AnswerCue will open automatically when you log in to your computer</p>
                                                         </div>
                                                     </div>
-                                                    <div
+                                                    <button type="button" role="switch" aria-checked={openOnLogin} aria-label="Open at login"
                                                         onClick={() => {
                                                             const newState = !openOnLogin;
                                                             setOpenOnLogin(newState);
@@ -1580,7 +1614,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                         className={`w-11 h-6 rounded-full relative transition-colors ${openOnLogin ? 'bg-accent-primary' : 'bg-bg-toggle-switch border border-border-muted'}`}
                                                     >
                                                         <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${openOnLogin ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
+                                                    </button>
                                                 </div>
 
                                                 {/* Meeting Retention */}
@@ -1600,7 +1634,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                             <p className="text-xs text-text-secondary mt-0.5 leading-normal">When enabled, live assistance works but transcripts, summaries, and history are discarded when the meeting ends</p>
                                                         </div>
                                                     </div>
-                                                    <div
+                                                    <button type="button"
                                                         onClick={() => {
                                                             const nextRetention = meetingRetention === 'never' ? 'forever' : 'never';
                                                             setMeetingRetention(nextRetention);
@@ -1612,7 +1646,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                         aria-label="Do not save meetings"
                                                     >
                                                         <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${meetingRetention === 'never' ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
+                                                    </button>
                                                 </div>
 
                                                 {/* Debug Logging */}
@@ -1632,7 +1666,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                             <p className="text-xs text-text-secondary mt-0.5">Print detailed audio, STT, and pipeline diagnostics</p>
                                                         </div>
                                                     </div>
-                                                    <div
+                                                    <button type="button" role="switch" aria-checked={verboseLogging} aria-label="Verbose debug logging"
                                                         onClick={() => {
                                                             const newState = !verboseLogging;
                                                             setVerboseLogging(newState);
@@ -1644,7 +1678,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                         className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer ${verboseLogging ? 'bg-amber-500' : 'bg-bg-toggle-switch border border-border-muted'}`}
                                                     >
                                                         <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${verboseLogging ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
+                                                    </button>
                                                 </div>
 
                                                 {/* Verbose logging toast */}
@@ -1700,7 +1734,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                             <p className="text-xs text-text-secondary mt-0.5">Show real-time transcription of the interviewer</p>
                                                         </div>
                                                     </div>
-                                                    <div
+                                                    <button type="button" role="switch" aria-checked={showTranscript} aria-label="Interviewer transcript"
                                                         onClick={() => {
                                                             const newState = !showTranscript;
                                                             setShowTranscript(newState);
@@ -1710,7 +1744,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                         className={`w-11 h-6 rounded-full relative transition-colors ${showTranscript ? 'bg-accent-primary' : 'bg-bg-toggle-switch border border-border-muted'}`}
                                                     >
                                                         <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${showTranscript ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
+                                                    </button>
                                                 </div>
 
                                                 {/* Auto Scroll */}
@@ -1730,7 +1764,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                             <p className="text-xs text-text-secondary mt-0.5">Automatically scroll to the latest message as new responses arrive</p>
                                                         </div>
                                                     </div>
-                                                    <div
+                                                    <button type="button" role="switch" aria-checked={autoScroll} aria-label="Auto scroll"
                                                         onClick={() => {
                                                             const newState = !autoScroll;
                                                             setAutoScroll(newState);
@@ -1740,7 +1774,7 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
                                                         className={`w-11 h-6 rounded-full relative transition-colors cursor-pointer ${autoScroll ? 'bg-accent-primary' : 'bg-bg-toggle-switch border border-border-muted'}`}
                                                     >
                                                         <div className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white transition-transform ${autoScroll ? 'translate-x-5' : 'translate-x-0'}`} />
-                                                    </div>
+                                                    </button>
                                                 </div>
 
 
@@ -3123,7 +3157,9 @@ const SettingsOverlay: React.FC<SettingsOverlayProps> = ({ isOpen, onClose, init
             {/* ALWAYS MOUNTED to prevent React AnimatePresence lag spikes         */}
             {/* ------------------------------------------------------------------ */}
             <div
+                key="settings-opacity-preview"
                 id="settings-mockup-wrapper"
+                aria-hidden="true"
                 className="fixed inset-0 z-[49] pointer-events-none transition-opacity duration-150"
                 style={{ opacity: isPreviewingOpacity ? 1 : 0 }}
             >

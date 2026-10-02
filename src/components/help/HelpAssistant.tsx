@@ -346,9 +346,9 @@ export const HelpAssistant: React.FC = () => {
     if (isDismissed) return null;
 
     return (
-        <div className="fixed bottom-5 right-5 z-[2200] no-drag">
+        <div data-open={isOpen} className="workspace-help-widget fixed bottom-5 right-5 z-[2200] no-drag">
             {isOpen && (
-                <div className="mb-3 flex h-[min(680px,calc(100vh-64px))] w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-card shadow-[0_28px_90px_rgba(0,0,0,0.50),0_0_0_1px_rgba(255,255,255,0.04),0_0_42px_rgba(249,115,22,0.10)]">
+                <div className="workspace-help-panel mb-3 flex h-[min(680px,calc(100vh-64px))] w-[min(440px,calc(100vw-32px))] flex-col overflow-hidden rounded-2xl border border-border-subtle bg-bg-card shadow-[0_28px_90px_rgba(0,0,0,0.50),0_0_0_1px_rgba(255,255,255,0.04),0_0_42px_rgba(249,115,22,0.10)]">
                     <div className="flex shrink-0 items-center justify-between border-b border-border-subtle bg-bg-secondary px-4 py-3">
                         <div className="min-w-0">
                             <div className="flex items-center gap-2">

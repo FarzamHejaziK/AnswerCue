@@ -252,7 +252,7 @@ const TopSearchPill: React.FC<TopSearchPillProps> = ({
             {/* Search Pill Container */}
             <div
                 ref={containerRef}
-                className="absolute left-1/2 -translate-x-1/2 top-[7px] no-drag z-40"
+                className="workspace-global-search absolute left-1/2 -translate-x-1/2 top-[7px] no-drag z-40"
             >
                 <div className="relative">
                     <motion.div

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { ToggleLeft, ToggleRight, Search, ArrowRight, ArrowLeft, MoreHorizontal, Globe, Clock, ChevronRight, Settings, RefreshCw, Ghost, Plus, Mail, Link as LinkIcon, ChevronDown, Trash2, Bell, Check, Download, DownloadCloud, CheckCircle, AlertCircle, User, Sparkles, ArrowUpRight, ArrowUp, Brain, Mic, ShieldCheck, Paperclip, X, Speaker, Pencil, KeyRound, Monitor, HelpCircle } from 'lucide-react';
+import { ToggleLeft, ToggleRight, Search, ArrowRight, ArrowLeft, MoreHorizontal, Globe, Clock, ChevronRight, Settings, RefreshCw, Ghost, Plus, Mail, Link as LinkIcon, ChevronDown, Trash2, Bell, Check, Download, DownloadCloud, CheckCircle, AlertCircle, User, Sparkles, ArrowUpRight, ArrowUp, Brain, Mic, ShieldCheck, Paperclip, X, Speaker, Pencil, KeyRound, Monitor, HelpCircle, PanelLeft, PanelRight, Copy, MessageSquare, Play, AudioLines } from 'lucide-react';
 import { generateMeetingPDF } from '../utils/pdfGenerator';
 import icon from "./icon.png";
 import { ModelSelector } from './ui/ModelSelector';
@@ -19,6 +19,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import 'katex/dist/katex.min.css';
+import '../workspace.css';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { oneLight, vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 
@@ -458,15 +459,15 @@ const HistoryMarkdown: React.FC<{ content: string; isLight: boolean; emptyText?:
                     ol: ({ node, ...props }: any) => <ol className="mb-2 ml-4 list-decimal space-y-1 last:mb-0" {...props} />,
                     li: ({ node, ...props }: any) => <li className="pl-1" {...props} />,
                     blockquote: ({ node, ...props }: any) => (
-                        <blockquote className={`my-2 border-l-2 pl-3 ${isLight ? 'border-slate-300 text-slate-700' : 'border-white/20 text-white/75'}`} {...props} />
+                        <blockquote className="my-2 border-l-2 border-border-muted pl-3 text-text-secondary" {...props} />
                     ),
                     table: ({ node, ...props }: any) => (
                         <div className="my-3 overflow-x-auto">
-                            <table className={`min-w-full border-collapse text-[12px] ${isLight ? 'border-slate-200' : 'border-white/12'}`} {...props} />
+                            <table className="min-w-full border-collapse border-border-muted text-[12px]" {...props} />
                         </div>
                     ),
-                    th: ({ node, ...props }: any) => <th className={`border px-2 py-1 text-left font-semibold ${isLight ? 'border-slate-200 bg-slate-50' : 'border-white/12 bg-white/6'}`} {...props} />,
-                    td: ({ node, ...props }: any) => <td className={`border px-2 py-1 align-top ${isLight ? 'border-slate-200' : 'border-white/12'}`} {...props} />,
+                    th: ({ node, ...props }: any) => <th className="border border-border-muted bg-bg-secondary px-3 py-2 text-left font-semibold" {...props} />,
+                    td: ({ node, ...props }: any) => <td className="border border-border-muted px-3 py-2 align-top" {...props} />,
                     strong: ({ node, ...props }: any) => <strong className="font-semibold text-text-primary" {...props} />,
                     a: ({ node, ...props }: any) => <a className="text-accent-primary hover:underline" {...props} />,
                     pre: ({ children }: any) => <div className="not-prose my-3">{children}</div>,
@@ -479,7 +480,7 @@ const HistoryMarkdown: React.FC<{ content: string; isLight: boolean; emptyText?:
                         if (isInline) {
                             return (
                                 <code
-                                    className={`rounded px-1.5 py-0.5 font-mono text-[12px] ${isLight ? 'bg-slate-100 text-slate-900' : 'bg-white/10 text-white'}`}
+                                    className="rounded bg-bg-component px-1.5 py-0.5 font-mono text-[12px] text-text-primary"
                                     {...props}
                                 >
                                     {children}
@@ -488,9 +489,9 @@ const HistoryMarkdown: React.FC<{ content: string; isLight: boolean; emptyText?:
                         }
 
                         return (
-                            <div className={`overflow-hidden rounded-xl border shadow-sm ${isLight ? 'border-slate-200 bg-slate-950' : 'border-white/12 bg-black/35'}`}>
-                                <div className={`border-b px-3 py-1.5 ${isLight ? 'border-white/10 bg-white/5' : 'border-white/10 bg-white/[0.04]'}`}>
-                                    <span className="font-mono text-[10px] font-semibold uppercase tracking-widest text-white/45">
+                            <div className="overflow-hidden rounded-lg border border-border-muted bg-bg-secondary">
+                                <div className="border-b border-border-subtle px-3 py-2">
+                                    <span className="font-mono text-[11px] font-medium text-text-secondary">
                                         {lang}
                                     </span>
                                 </div>
@@ -1111,12 +1112,31 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
 }) => {
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const docMenuRef = useRef<HTMLDivElement>(null);
+    const composerRef = useRef<HTMLTextAreaElement>(null);
+    const scrollRef = useRef<HTMLDivElement>(null);
+    const followingMessages = useRef(true);
+    const [showScrollToLatest, setShowScrollToLatest] = useState(false);
+    const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null);
     const [isDocMenuOpen, setIsDocMenuOpen] = useState(false);
     const [selectedScreenshotPreview, setSelectedScreenshotPreview] = useState<ScreenshotPreviewAttachment | null>(null);
 
     useEffect(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        if (followingMessages.current) {
+            messagesEndRef.current?.scrollIntoView({ behavior: 'instant', block: 'end' });
+        }
     }, [messages, liveTranscript, meeting?.id, conversationState]);
+
+    useEffect(() => {
+        if (!composerRef.current) return;
+        composerRef.current.style.height = 'auto';
+        composerRef.current.style.height = `${Math.min(composerRef.current.scrollHeight, 160)}px`;
+    }, [draft]);
+
+    useEffect(() => {
+        if (!copiedMessageId) return;
+        const timeout = setTimeout(() => setCopiedMessageId(null), 1800);
+        return () => clearTimeout(timeout);
+    }, [copiedMessageId]);
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
@@ -1140,17 +1160,12 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
     const duringMessages = messages.filter(message => message.phase === 'during');
     const afterMessages = messages.filter(message => message.phase === 'after');
     const busy = conversationState === 'waiting' || conversationState === 'streaming';
-    const panelTitle = meeting ? 'Interview history' : isMeetingActive ? 'Live interview' : 'Prepare interview';
-    const panelSubtitle = meeting
-        ? 'Transcript, AI responses, and follow-up chat stay in one place.'
-        : isMeetingActive
-            ? 'Live transcript is added below your prep context.'
-            : 'Chat notes and selected docs become live interview context.';
+    const panelTitle = meeting ? 'Follow-up' : isMeetingActive ? 'Live interview' : 'Preparation';
     const composerPlaceholder = meeting
         ? 'Ask about this interview'
         : isMeetingActive
             ? 'Ask while the interview is live'
-            : 'What should I know about your interview? How should I answer the questions?';
+            : 'Tell me about your interview...';
 
     const renderMessageAttachments = (message: PrepMessage) => {
         if (!message.attachments?.length) return null;
@@ -1160,7 +1175,7 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                 {message.attachments.map(doc => (
                     <div
                         key={doc.id}
-                        className={`w-[150px] h-[72px] rounded-xl border overflow-hidden shadow-sm ${isLight ? 'bg-white border-slate-200' : 'bg-[#171719] border-white/12'}`}
+                        className="w-[150px] h-[72px] rounded-lg border border-border-muted bg-bg-secondary overflow-hidden"
                         title={`${doc.name} · ${doc.fileType.toUpperCase()} · ${formatBytes(doc.sizeBytes)} · attached ${formatMessageTime(message.createdAt)}`}
                     >
                         <div className={`h-9 px-2.5 flex items-center gap-2 ${isLight ? 'bg-slate-50' : 'bg-black/30'}`}>
@@ -1184,16 +1199,31 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
     };
 
     const renderChatMessages = (items: PrepMessage[]) => items.map((message) => (
-        <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[78%] flex flex-col gap-2 ${message.role === 'user' ? 'items-end' : 'items-start'}`}>
+        <div key={message.id} className={`workspace-message workspace-message--${message.role}`}>
+            <div className="workspace-message-body">
+                <div className="workspace-message-meta">
+                    {message.role === 'assistant' ? <img src={icon} alt="" /> : <User size={13} />}
+                    <span>{message.role === 'assistant' ? 'AnswerCue' : 'You'}</span>
+                    <time>{formatMessageTime(message.createdAt)}</time>
+                    {message.role === 'assistant' && message.content && !message.isStreaming && (
+                        <button
+                            type="button"
+                            className="workspace-icon-button workspace-copy"
+                            title={copiedMessageId === message.id ? 'Copied' : 'Copy response'}
+                            aria-label={copiedMessageId === message.id ? 'Copied' : 'Copy response'}
+                            onClick={async () => {
+                                try {
+                                    await navigator.clipboard.writeText(message.content);
+                                    setCopiedMessageId(message.id);
+                                } catch { setCopiedMessageId(null); }
+                            }}
+                        >
+                            {copiedMessageId === message.id ? <Check size={13} /> : <Copy size={13} />}
+                        </button>
+                    )}
+                </div>
                 {renderMessageAttachments(message)}
-                <div className={`rounded-lg px-3.5 py-2.5 text-[13px] leading-relaxed ${
-                    message.role === 'user'
-                        ? 'bg-text-primary text-bg-primary'
-                        : isLight
-                            ? 'bg-white border border-border-subtle text-text-primary'
-                            : 'bg-bg-secondary border border-border-subtle text-text-primary'
-                }`}>
+                <div className="workspace-message-content">
                     {message.role === 'assistant' ? (
                         <HistoryMarkdown
                             content={message.content}
@@ -1320,16 +1350,16 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
     };
 
     return (
-        <div className={`h-full min-h-0 rounded-lg border border-border-subtle ${isLight ? 'bg-bg-secondary' : 'bg-bg-primary'} flex flex-col overflow-hidden`}>
-            <div className="shrink-0 px-5 py-3 border-b border-border-subtle flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                    <h2 className="text-[14px] font-semibold text-text-primary">{panelTitle}</h2>
-                    <p className="text-[11px] text-text-tertiary truncate">{panelSubtitle}</p>
+        <div className="workspace-conversation">
+            <div className="workspace-conversation-toolbar">
+                <div className="workspace-phase" data-live={isMeetingActive && !meeting}>
+                    {meeting ? <CheckCircle size={14} /> : isMeetingActive ? <AudioLines size={14} /> : <MessageSquare size={14} />}
+                    <span>{panelTitle}</span>
                 </div>
                 {!meeting && (
                     <button
                         onClick={onStartInterview}
-                        className={`h-9 px-4 rounded-md inline-flex items-center gap-2 text-[13px] font-semibold text-white transition-colors ${isMeetingActive ? 'bg-emerald-600 hover:bg-emerald-500' : 'bg-accent-primary hover:opacity-90'}`}
+                        className="workspace-start-button"
                     >
                         {isMeetingActive ? (
                             <>
@@ -1341,7 +1371,7 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                             </>
                         ) : (
                             <>
-                                <img src={icon} alt="" className="w-4 h-4 object-contain brightness-0 invert" />
+                                <Play size={14} fill="currentColor" />
                                 Start interview
                             </>
                         )}
@@ -1349,19 +1379,29 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                 )}
             </div>
 
-            <div className="flex-1 min-h-0 flex flex-col">
-                <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar px-6 py-6">
-                    <div className="mx-auto flex min-h-full w-full max-w-[920px] flex-col gap-3">
+            <div className="flex-1 min-h-0 flex flex-col relative">
+                <div
+                    ref={scrollRef}
+                    className="workspace-message-scroll custom-scrollbar"
+                    onScroll={() => {
+                        const element = scrollRef.current;
+                        if (!element) return;
+                        followingMessages.current = element.scrollHeight - element.scrollTop - element.clientHeight < 80;
+                        setShowScrollToLatest(!followingMessages.current);
+                    }}
+                >
+                    <div className="workspace-message-column">
                         {messages.length === 0 && !hasInterviewStarted ? (
-                            <div className="flex flex-1 items-center justify-center text-center px-8">
-                                <div className="max-w-[520px]">
-                                    <div className={`mx-auto mb-4 h-12 w-12 rounded-xl flex items-center justify-center ${isLight ? 'bg-accent-secondary text-accent-primary' : 'bg-accent-secondary text-accent-primary'}`}>
-                                        <Sparkles size={22} />
+                            <div className="workspace-empty">
+                                <div>
+                                    <img src={icon} alt="AnswerCue" className="workspace-empty-logo" />
+                                    <h3>What should I know<br />about your interview?</h3>
+                                    <p>How should I answer the questions?</p>
+                                    <div className="workspace-starters">
+                                        <button onClick={() => { onDraftChange('The role and company I am interviewing for are '); composerRef.current?.focus(); }}><MessageSquare size={15} /> Role & company <ArrowUpRight size={13} /></button>
+                                        <button onClick={onUploadDoc} disabled={isUploadingDoc}><Paperclip size={15} /> Add a resume or brief <Plus size={13} /></button>
+                                        <button onClick={() => { onDraftChange('When answering interview questions, I would like you to '); composerRef.current?.focus(); }}><Sparkles size={15} /> Answer preferences <ArrowUpRight size={13} /></button>
                                     </div>
-                                    <h3 className="text-[26px] font-semibold tracking-tight text-text-primary">What should I know about your interview?</h3>
-                                    <p className="mt-2 text-[14px] leading-relaxed text-text-secondary">
-                                        Tell me the role, company, interview round, likely topics, stories to use, and how you want answers shaped.
-                                    </p>
                                 </div>
                             </div>
                         ) : (
@@ -1379,9 +1419,16 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                     </div>
                 </div>
 
-                <div className={`shrink-0 border-t border-border-subtle px-5 py-4 ${isLight ? 'bg-bg-secondary' : 'bg-bg-primary'}`}>
-                    <div className="mx-auto w-full max-w-[920px]">
-                    <div className={`session-chat-composer relative rounded-2xl border shadow-sm transition-colors ${isLight ? 'bg-white border-border-muted focus-within:border-border-muted' : 'bg-bg-input border-white/8 focus-within:border-white/15'} overflow-visible`}>
+                <div className="workspace-composer-area">
+                    {showScrollToLatest && (
+                        <button className="workspace-jump-latest" title="Jump to latest message" aria-label="Jump to latest message" onClick={() => {
+                            followingMessages.current = true;
+                            setShowScrollToLatest(false);
+                            messagesEndRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                        }}><ChevronDown size={17} /></button>
+                    )}
+                    <div className="workspace-composer-width">
+                    <div className="session-chat-composer workspace-composer">
                         {selectedDocs.length > 0 && (
                             <div className="px-3 pt-3 flex flex-wrap gap-1.5">
                                 {selectedDocs.map(doc => (
@@ -1404,11 +1451,14 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                             </div>
                         )}
                         <textarea
+                            ref={composerRef}
+                            aria-label="Message"
                             value={draft}
                             onChange={(e) => onDraftChange(e.target.value)}
                             onKeyDown={(e) => {
-                                if (e.key === 'Enter' && !e.shiftKey) {
+                                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
                                     e.preventDefault();
+                                    followingMessages.current = true;
                                     onSubmit();
                                 }
                             }}
@@ -1418,18 +1468,27 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                             className="block w-full resize-none bg-transparent outline-none focus:outline-none focus-visible:outline-none ring-0 focus:ring-0 focus-visible:ring-0 px-4 pt-3 pb-1 text-[14px] leading-5 text-text-primary placeholder:text-text-tertiary max-h-28"
                         />
                         <div className="h-10 px-3 pb-2 flex items-center justify-between">
-                            <div className="min-w-0 flex items-center gap-2" ref={docMenuRef}>
+                            <div className="min-w-0 flex items-center gap-2" ref={docMenuRef} onKeyDown={event => {
+                                if (event.key === 'Escape' && isDocMenuOpen) {
+                                    event.preventDefault();
+                                    event.stopPropagation();
+                                    setIsDocMenuOpen(false);
+                                    docMenuRef.current?.querySelector('button')?.focus();
+                                }
+                            }}>
                                 <div className="relative">
                                     <button
                                         onClick={() => setIsDocMenuOpen(prev => !prev)}
                                         className={`relative h-7 w-7 rounded-md inline-flex items-center justify-center transition-colors ${isDocMenuOpen ? isLight ? 'bg-slate-100 text-text-primary' : 'bg-white/10 text-text-primary' : 'text-text-tertiary hover:text-text-primary'}`}
                                         title="Add context documents"
+                                        aria-label="Add context documents"
+                                        aria-expanded={isDocMenuOpen}
                                     >
                                         <Plus size={17} strokeWidth={2} />
                                     </button>
 
                                     {isDocMenuOpen && (
-                                        <div className={`absolute left-0 bottom-[calc(100%+10px)] z-[80] w-[340px] rounded-xl border shadow-2xl overflow-hidden ${isLight ? 'bg-white border-border-muted shadow-[0_16px_40px_rgba(0,0,0,0.16)]' : 'bg-[#202023] border-white/10 shadow-[0_18px_48px_rgba(0,0,0,0.55)]'}`}>
+                                        <div className="workspace-document-menu absolute left-0 bottom-[calc(100%+10px)] z-[80] overflow-hidden">
                                             <div className="p-2 border-b border-border-subtle">
                                                 <button
                                                     onClick={() => {
@@ -1502,16 +1561,17 @@ const InterviewPrepPanel: React.FC<InterviewPrepPanelProps> = ({
                                 <div className="min-w-0 flex items-center gap-1.5 text-[11px] text-text-tertiary">
                                     <Brain size={13} className="shrink-0 text-accent-primary" />
                                 <span className="truncate">
-                                    {userNoteCount} note{userNoteCount === 1 ? '' : 's'} · {selectedDocs.length} doc{selectedDocs.length === 1 ? '' : 's'}
-                                    {preparedCharCount > 0 ? ` · ${preparedCharCount.toLocaleString()} chars prepared` : ''}
+                                    {busy ? 'AnswerCue is thinking...' : preparedCharCount > 0 || userNoteCount > 0 ? 'Interview context ready' : 'Interview context'}
                                 </span>
                                 </div>
                             </div>
                             <button
-                                onClick={onSubmit}
-                                disabled={!draft.trim() || busy}
+                                onClick={() => { followingMessages.current = true; onSubmit(); }}
+                                disabled={(!draft.trim() && selectedDocs.length === 0) || busy}
+                                title="Send message"
+                                aria-label="Send message"
                                 className={`h-8 w-8 shrink-0 rounded-full flex items-center justify-center transition-colors ${
-                                    draft.trim() && !busy
+                                    (draft.trim() || selectedDocs.length > 0) && !busy
                                         ? isLight
                                             ? 'bg-slate-900 text-white hover:bg-slate-800'
                                             : 'bg-slate-100 text-slate-950 hover:bg-white'
@@ -1688,60 +1748,19 @@ const LauncherAudioSelect: React.FC<LauncherAudioSelectProps> = ({
     placeholder,
     onChange,
 }) => {
-    const [isOpen, setIsOpen] = useState(false);
-    const containerRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        const handleClickOutside = (event: MouseEvent) => {
-            if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
-                setIsOpen(false);
-            }
-        };
-        document.addEventListener('mousedown', handleClickOutside);
-        return () => document.removeEventListener('mousedown', handleClickOutside);
-    }, []);
-
-    const selectedLabel = options.find(device => device.id === value)?.name || placeholder;
-
     return (
-        <div className="bg-bg-card rounded-xl p-4 border border-border-subtle" ref={containerRef}>
-            <div className="flex items-center gap-2 mb-3">
-                <span className="text-text-secondary">{icon}</span>
-                <label className="text-xs font-medium text-text-primary uppercase tracking-wide">{label}</label>
-            </div>
+        <div className="workspace-audio-select">
+            <label htmlFor={`workspace-audio-${label.replace(/\s/g, '-').toLowerCase()}`}>{icon}{label}</label>
             <div className="relative">
-                <button
-                    type="button"
-                    onClick={() => setIsOpen(prev => !prev)}
-                    className="w-full bg-bg-input border border-border-subtle rounded-lg px-3 py-2.5 text-sm text-text-primary flex items-center justify-between hover:bg-bg-elevated transition-colors"
+                <select
+                    id={`workspace-audio-${label.replace(/\s/g, '-').toLowerCase()}`}
+                    value={options.some(device => device.id === value) ? value : ''}
+                    onChange={event => onChange(event.target.value)}
                 >
-                    <span className="truncate pr-4 text-left">{selectedLabel}</span>
-                    <ChevronDown size={14} className={`text-text-secondary transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                </button>
-                {isOpen && (
-                    <div className="absolute top-full left-0 w-full mt-1 bg-bg-elevated border border-border-subtle rounded-lg shadow-xl z-[80] max-h-48 overflow-y-auto custom-scrollbar">
-                        <div className="p-1 space-y-0.5">
-                        {options.length > 0 ? (
-                            options.map(device => (
-                                <button
-                                    key={device.id}
-                                    type="button"
-                                    onClick={() => {
-                                        onChange(device.id);
-                                        setIsOpen(false);
-                                    }}
-                                    className={`w-full text-left px-3 py-2 text-sm rounded-md flex items-center justify-between group transition-colors ${value === device.id ? 'bg-bg-input hover:bg-bg-elevated text-text-primary' : 'text-text-secondary hover:bg-bg-input hover:text-text-primary'}`}
-                                >
-                                    <span className="truncate">{device.name || `Device ${device.id.slice(0, 5)}...`}</span>
-                                    {value === device.id && <Check size={14} className="text-accent-primary" />}
-                                </button>
-                            ))
-                        ) : (
-                            <div className="px-3 py-2 text-sm text-gray-500 italic">No devices found</div>
-                        )}
-                        </div>
-                    </div>
-                )}
+                    {!options.some(device => device.id === value) && <option value="" disabled>{placeholder}</option>}
+                    {options.map(device => <option key={device.id} value={device.id}>{device.name || 'Unnamed device'}</option>)}
+                </select>
+                <ChevronDown size={13} className="workspace-select-arrow" />
             </div>
         </div>
     );
@@ -1916,6 +1935,29 @@ const formatTime = (dateStr: string) => {
 
 const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onPageChange, ollamaPullStatus = 'idle', ollamaPullPercent = 0, ollamaPullMessage = '' }) => {
     const [meetings, setMeetings] = useState<Meeting[]>([]);
+    const [interviewSearch, setInterviewSearch] = useState('');
+    const [navigationOpen, setNavigationOpen] = useState(() => window.innerWidth >= 800);
+    const [inspectorOpen, setInspectorOpen] = useState(() => window.innerWidth >= 1120);
+
+    useEffect(() => {
+        const navigationQuery = window.matchMedia('(min-width: 800px)');
+        const inspectorQuery = window.matchMedia('(min-width: 1120px)');
+        const updateNavigation = () => setNavigationOpen(navigationQuery.matches);
+        const updateInspector = () => setInspectorOpen(inspectorQuery.matches);
+        const handleEscape = (event: KeyboardEvent) => {
+            if (event.defaultPrevented || event.key !== 'Escape') return;
+            if (!navigationQuery.matches) setNavigationOpen(false);
+            if (!inspectorQuery.matches) setInspectorOpen(false);
+        };
+        navigationQuery.addEventListener('change', updateNavigation);
+        inspectorQuery.addEventListener('change', updateInspector);
+        window.addEventListener('keydown', handleEscape);
+        return () => {
+            navigationQuery.removeEventListener('change', updateNavigation);
+            inspectorQuery.removeEventListener('change', updateInspector);
+            window.removeEventListener('keydown', handleEscape);
+        };
+    }, []);
     const [isDetectable, setIsDetectable] = useState(false);
     const [isMeetingActive, setIsMeetingActive] = useState(false);
     const [selectedMeeting, setSelectedMeeting] = useState<Meeting | null>(null);
@@ -2788,7 +2830,8 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
     };
 
     // Group meetings
-    const groupedMeetings = meetings.reduce((acc, meeting) => {
+    const filteredMeetings = meetings.filter(meeting => `${meeting.title} ${meeting.summary || ''}`.toLowerCase().includes(interviewSearch.trim().toLowerCase()));
+    const groupedMeetings = filteredMeetings.reduce((acc, meeting) => {
         const label = getGroupLabel(meeting.date);
         if (!acc[label]) acc[label] = [];
         acc[label].push(meeting);
@@ -3234,7 +3277,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
     }, []);
 
     const submitPrepMessage = useCallback(async () => {
-        const note = prepDraft.trim();
+        const note = prepDraft.trim() || (selectedDocs.length > 0 ? 'Use the attached documents as context for this interview.' : '');
         if (!note || workspaceConversationState === 'waiting' || workspaceConversationState === 'streaming') return;
 
         const phase: PrepMessage['phase'] = selectedMeeting ? 'after' : isMeetingActive ? 'during' : 'before';
@@ -3628,15 +3671,17 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
     ];
 
     return (
-        <div className="h-full w-full flex flex-col bg-bg-primary text-text-primary font-sans overflow-hidden selection:bg-[var(--accent-muted)]">
+        <div data-inspector-open={inspectorOpen} className="answercue-workspace h-full w-full flex flex-col bg-bg-primary text-text-primary font-sans overflow-hidden selection:bg-[var(--accent-muted)]">
             {/* 1. Header (Static) */}
-            <header className={`relative w-full h-[40px] shrink-0 flex items-center justify-between pl-0 drag-region select-none ${isLight ? 'bg-bg-primary' : 'bg-bg-secondary'} border-b border-border-subtle z-[200]`}>
+            <header className="workspace-titlebar relative w-full shrink-0 flex items-center justify-between pl-0 drag-region select-none border-b border-border-subtle z-[200]">
                 {/* Left: Spacing for Traffic Lights + Navigation Arrows */}
                 <div className="flex items-center gap-1 no-drag">
                     {isMac && <div className="w-[70px]" />} {/* Traffic Light Spacer (macOS only) */}
 
                     {/* Back Button */}
                     <button
+                        aria-label="Back to current interview"
+                        title="Back to current interview"
                         onClick={selectedMeeting ? handleBack : undefined}
                         disabled={!selectedMeeting}
                         className={`
@@ -3651,6 +3696,8 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
 
                     {/* Forward Button */}
                     <button
+                        aria-label="Forward"
+                        title="Forward"
                         onClick={handleForward}
                         disabled={!forwardMeeting}
                         className={`
@@ -3720,9 +3767,6 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
             </header>
 
             <div className="relative flex-1 flex flex-col overflow-hidden">
-                {!isDetectable && (
-                    <div className={`absolute inset-1 border-2 border-dashed rounded-2xl pointer-events-none z-[100] ${isLight ? 'border-black/15' : 'border-white/20'}`} />
-                )}
                 {showPreflight ? (
                     <motion.div
                         key="preflight"
@@ -4029,27 +4073,27 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                     transition={{ duration: 0.15 }}
                 >
 
-                            <div className={`h-full min-h-0 grid grid-cols-[300px_minmax(0,1fr)_360px] ${isLight ? 'bg-bg-primary' : 'bg-bg-primary'}`}>
-                                <aside className={`min-h-0 border-r border-border-subtle flex flex-col ${isLight ? 'bg-bg-secondary' : 'bg-bg-primary'}`}>
-                                    <div className="shrink-0 px-3 py-3 border-b border-border-subtle">
+                            <div className="workspace-grid">
+                                <button className="workspace-drawer-backdrop" aria-label="Close side panels" data-navigation={navigationOpen} data-inspector={inspectorOpen} onClick={() => { setNavigationOpen(false); setInspectorOpen(false); }} />
+                                <aside id="interview-navigation" aria-label="Interviews" className={`workspace-navigation ${navigationOpen ? '' : 'workspace-panel-closed'}`}>
+                                    <div className="workspace-brand">
+                                        <img src={icon} alt="" />
+                                        <span>AnswerCue</span>
+                                    </div>
                                         <button
-                                            onClick={handleNewInterview}
-                                            className={`w-full h-9 rounded-md px-3 flex items-center gap-2 text-[13px] font-semibold transition-colors ${
-                                                isLight
-                                                    ? 'bg-slate-900 text-white hover:bg-slate-800'
-                                                    : 'bg-slate-100 text-slate-950 hover:bg-white'
-                                            }`}
+                                            onClick={() => { handleNewInterview(); if (window.innerWidth < 800) setNavigationOpen(false); }}
+                                            className="workspace-new"
                                         >
                                             <Plus size={15} strokeWidth={2.3} />
                                             <span>New interview</span>
                                         </button>
-                                    </div>
-
-                                    <div className="shrink-0 px-3 py-2 border-b border-border-subtle flex items-center justify-between">
-                                        <div>
-                                            <h2 className="text-[13px] font-semibold text-text-primary">Interviews</h2>
-                                            <p className="text-[11px] text-text-tertiary">{meetings.length} saved</p>
-                                        </div>
+                                    <label className="workspace-search">
+                                        <Search size={14} className="shrink-0" />
+                                        <input value={interviewSearch} onChange={event => setInterviewSearch(event.target.value)} placeholder="Find an interview" aria-label="Find an interview" />
+                                        {interviewSearch && <button className="workspace-icon-button" title="Clear search" aria-label="Clear search" onClick={() => setInterviewSearch('')}><X size={12} /></button>}
+                                    </label>
+                                    <div className="workspace-list-heading">
+                                        <span>Interviews <small>{meetings.length}</small></span>
                                         <button
                                             onClick={handleRefresh}
                                             disabled={isRefreshing}
@@ -4072,7 +4116,19 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                         <motion.div
                                                             key={m.id}
                                                             layoutId={`meeting-${m.id}`}
-                                                            className={`group relative px-2.5 py-2 rounded-md transition-colors ${rowRenaming ? 'cursor-default' : 'cursor-pointer'} ${
+                                                            role="button"
+                                                            tabIndex={0}
+                                                            aria-label={`Open interview: ${m.title}`}
+                                                            aria-current={selectedMeeting?.id === m.id ? 'page' : undefined}
+                                                            data-selected={selectedMeeting?.id === m.id}
+                                                            onKeyDown={event => {
+                                                                if (event.target === event.currentTarget && (event.key === 'Enter' || event.key === ' ')) {
+                                                                    event.preventDefault();
+                                                                    handleOpenMeeting(m);
+                                                                    if (window.innerWidth < 800) setNavigationOpen(false);
+                                                                }
+                                                            }}
+                                                            className={`workspace-interview-row group relative px-2.5 py-2 rounded-md transition-colors ${rowRenaming ? 'cursor-default' : 'cursor-pointer'} ${
                                                                 selectedMeeting?.id === m.id
                                                                     ? isLight
                                                                         ? 'bg-bg-elevated shadow-[inset_0_0_0_1px_rgba(0,0,0,0.06)]'
@@ -4082,7 +4138,10 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                                         : 'hover:bg-white/6'
                                                             }`}
                                                             onClick={() => {
-                                                                if (!rowRenaming) handleOpenMeeting(m);
+                                                                if (!rowRenaming) {
+                                                                    handleOpenMeeting(m);
+                                                                    if (window.innerWidth < 800) setNavigationOpen(false);
+                                                                }
                                                             }}
                                                         >
                                                             <div className="flex items-center justify-between gap-2">
@@ -4140,7 +4199,10 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                                             {m.title}
                                                                         </p>
                                                                         <button
-                                                                            className="opacity-0 group-hover:opacity-100 h-6 w-6 shrink-0 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-bg-item-active transition-all"
+                                                                            className="workspace-row-menu opacity-0 group-hover:opacity-100 h-6 w-6 shrink-0 rounded-md flex items-center justify-center text-text-tertiary hover:text-text-primary hover:bg-bg-item-active transition-all"
+                                                                            title="Interview actions"
+                                                                            aria-label={`Actions for ${m.title}`}
+                                                                            aria-expanded={activeMenuId === m.id}
                                                                             onClick={(e) => {
                                                                                 e.stopPropagation();
                                                                                 setActiveMenuId(activeMenuId === m.id ? null : m.id);
@@ -4240,8 +4302,8 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                 </div>
                                             </section>
                                         ))}
-                                        {meetings.length === 0 && (
-                                            <div className="px-3 py-8 text-center text-[13px] text-text-tertiary">No interviews yet.</div>
+                                        {filteredMeetings.length === 0 && (
+                                            <div className="px-3 py-8 text-center text-[12px] text-text-tertiary">{interviewSearch ? 'No matching interviews.' : 'No interviews yet.'}</div>
                                         )}
                                     </div>
                                     {showUpdateRow && (
@@ -4294,8 +4356,9 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                     )}
                                 </aside>
 
-                                <main className="min-h-0 flex flex-col">
-                                    <div className="h-[54px] px-5 flex items-center justify-between border-b border-border-subtle">
+                                <main className="workspace-main">
+                                    <div className="workspace-main-header">
+                                        <button className="workspace-icon-button" title={navigationOpen ? 'Hide interviews' : 'Show interviews'} aria-label={navigationOpen ? 'Hide interviews' : 'Show interviews'} aria-expanded={navigationOpen} aria-controls="interview-navigation" onClick={() => { setNavigationOpen(!navigationOpen); if (window.innerWidth < 800) setInspectorOpen(false); }}><PanelLeft size={17} /></button>
 	                                        <div className="min-w-0 flex-1">
                                                 {selectedMeeting && renamingMeetingId === selectedMeeting.id && renameOrigin === 'header' ? (
                                                     <div className="flex items-center gap-1.5 min-w-0">
@@ -4341,7 +4404,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                 ) : (
                                                     <div className="flex items-center gap-1.5 min-w-0">
                                                         <h1 className="min-w-0 text-[15px] font-semibold text-text-primary truncate">
-                                                            {selectedMeeting ? selectedMeeting.title : 'Current interview'}
+                                                            {selectedMeeting ? selectedMeeting.title : isMeetingActive ? 'Current interview' : 'New interview'}
                                                         </h1>
                                                         {selectedMeeting && !isMeetingFinalizing(selectedMeeting) && (
                                                             <button
@@ -4361,12 +4424,13 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
 	                                            <p className="text-[11px] text-text-tertiary truncate">
 	                                                    {selectedMeeting
 	                                                        ? `${new Date(selectedMeeting.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} · ${formatDurationPill(selectedMeeting.duration)}`
-	                                                        : readinessSummary}
+                                                        : isMeetingActive ? 'Interview in progress' : 'Ready when you are'}
 	                                                </p>
                                                 )}
 		                                        </div>
+                                        <button className="workspace-icon-button" title={inspectorOpen ? 'Hide interview settings' : 'Show interview settings'} aria-label={inspectorOpen ? 'Hide interview settings' : 'Show interview settings'} aria-expanded={inspectorOpen} aria-controls="interview-settings" onClick={() => { setInspectorOpen(!inspectorOpen); if (window.innerWidth < 800) setNavigationOpen(false); }}><PanelRight size={17} /></button>
 	                                    </div>
-			                                    <div className="flex-1 min-h-0 p-5 overflow-hidden">
+			                                    <div className="workspace-main-content">
 		                                        <InterviewPrepPanel
                                                     key={selectedMeeting?.id || 'current-interview-workspace'}
                                                     isLight={isLight}
@@ -4393,10 +4457,14 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
 		                                    </div>
                                 </main>
 
-                                <aside className={`min-h-0 border-l border-border-subtle flex flex-col ${isLight ? 'bg-bg-secondary' : 'bg-bg-primary'}`}>
-                                    <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-4 space-y-4">
+                                <aside id="interview-settings" aria-label="Interview settings" className={`workspace-inspector ${inspectorOpen ? '' : 'workspace-panel-closed'}`}>
+                                    <div className="workspace-inspector-header">
+                                        <h2>Interview settings</h2>
+                                        <button className="workspace-icon-button" title="Hide interview settings" aria-label="Close interview settings panel" onClick={() => setInspectorOpen(false)}><PanelRight size={15} /></button>
+                                    </div>
+                                    <div className="workspace-inspector-scroll custom-scrollbar">
                                         {setupIssues.length > 0 && (
-                                            <section className={`rounded-lg border border-amber-500/25 ${isLight ? 'bg-amber-50/80' : 'bg-amber-500/8'} p-3 space-y-2.5`}>
+                                            <section className="workspace-setup-warning space-y-2.5">
                                                 <div className="flex items-center gap-2 text-amber-500">
                                                     <AlertCircle size={15} />
                                                     <h3 className="text-[12px] font-semibold">Setup needed</h3>
@@ -4416,11 +4484,11 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                             </section>
                                         )}
 
-                                        <section className={`rounded-lg border border-border-subtle ${isLight ? 'bg-bg-elevated' : 'bg-bg-secondary'} p-3`}>
+                                        <section className="workspace-inspector-section">
                                             <div className="flex items-center justify-between gap-2 mb-3">
                                                 <div className="min-w-0">
-                                                    <h3 className="text-[12px] font-semibold text-text-primary">Model</h3>
-                                                    <p className="text-[10.5px] text-text-tertiary truncate">{readiness.aiProvider} · {readiness.aiModel}</p>
+                                                    <h3 className="text-[12px] font-semibold text-text-primary">AI model</h3>
+                                                    <p className="text-[11px] text-text-tertiary mt-1">{readiness.aiProvider}</p>
                                                 </div>
                                                 <button
                                                     onClick={() => refreshReadiness()}
@@ -4433,16 +4501,16 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                             <ModelSelector
                                                 currentModel={currentModel}
                                                 onSelectModel={handleModelSelect}
+                                                variant="workspace"
                                                 placement="down"
                                                 className="w-full !max-w-none justify-between"
                                             />
                                         </section>
 
-                                        <section className={`rounded-lg border border-border-subtle ${isLight ? 'bg-bg-elevated' : 'bg-bg-secondary'} p-3`}>
+                                        <section className="workspace-inspector-section">
                                             <div className="flex items-center justify-between gap-2 mb-3">
                                                 <div className="min-w-0">
-                                                    <h3 className="text-[12px] font-semibold text-text-primary">Audio Configuration</h3>
-                                                    <p className="text-[10.5px] text-text-tertiary truncate">Manage input and output devices.</p>
+                                                    <h3 className="text-[12px] font-semibold text-text-primary">Audio</h3>
                                                 </div>
                                                 <button
                                                     onClick={() => loadAudioDevices()}
@@ -4475,7 +4543,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                             )}
                                             <div className="space-y-4">
                                                 <LauncherAudioSelect
-                                                    label="Input Device"
+                                                    label="Microphone"
                                                     icon={<Mic size={16} />}
                                                     value={selectedInputDeviceId}
                                                     options={inputDevices}
@@ -4484,7 +4552,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                 />
                                                 <div>
                                                     <div className="flex justify-between text-xs text-text-secondary mb-2 px-1">
-                                                        <span>Input Level</span>
+                                                        <span className="text-[10px]">Input level</span>
                                                     </div>
                                                     <div className="h-1.5 bg-bg-input rounded-full overflow-hidden">
                                                         <div
@@ -4497,7 +4565,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                 <div className="h-px bg-border-subtle my-2" />
 
                                                 <LauncherAudioSelect
-                                                    label="Output Device"
+                                                    label="Meeting audio"
                                                     icon={<Speaker size={16} />}
                                                     value={selectedOutputDeviceId}
                                                     options={outputDevices}
@@ -4506,7 +4574,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                 />
                                                 <div>
                                                     <div className="flex justify-between text-xs text-text-secondary mb-2 px-1">
-                                                        <span>System Audio Level</span>
+                                                        <span className="text-[10px]">System audio level</span>
                                                     </div>
                                                     <div className="h-1.5 bg-bg-input rounded-full overflow-hidden">
                                                         <div
@@ -4525,8 +4593,8 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                             </div>
                                         </section>
 
-                                        <section className={`rounded-lg border border-border-subtle ${isLight ? 'bg-bg-elevated' : 'bg-bg-secondary'} p-3`}>
-                                            <div className={`rounded-xl p-4 border border-border-subtle flex items-center justify-between gap-3 transition-all ${isLight ? 'bg-bg-card' : 'bg-bg-item-surface'} ${!isDetectable ? 'shadow-lg shadow-[0_0_24px_rgba(124,77,255,0.16)]' : ''}`}>
+                                        <section className="workspace-inspector-section">
+                                            <div className="workspace-detectability">
                                                 <div className="min-w-0 flex flex-col gap-1">
                                                     <div className="flex items-center gap-2">
                                                         <Ghost size={16} className="shrink-0 text-text-primary" />
@@ -4535,7 +4603,7 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
                                                         </h3>
                                                     </div>
                                                     <p className="text-[11px] leading-relaxed text-text-secondary">
-                                                        AnswerCue is currently {isDetectable ? 'detectable' : 'undetectable'} by screen sharing.
+                                                        {isDetectable ? 'Visible during screen sharing' : 'Hidden from screen sharing'}
                                                     </p>
                                                 </div>
                                                 <button
