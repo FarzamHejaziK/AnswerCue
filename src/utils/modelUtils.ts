@@ -1,3 +1,5 @@
+import { OPENAI_CHAT_MODELS, CLAUDE_CHAT_MODELS, getCloudChatModel } from '../../electron/llm/cloudModelCatalog';
+
 export const STANDARD_CLOUD_MODELS: Record<string, {
     hasKeyCheck: (creds: any) => boolean;
     ids: string[];
@@ -14,16 +16,16 @@ export const STANDARD_CLOUD_MODELS: Record<string, {
     },
     openai: {
         hasKeyCheck: (creds) => !!creds?.hasOpenaiKey,
-        ids: ['chat-latest', 'gpt-5.5', 'gpt-5.5-thinking-low', 'gpt-5.4'],
-        names: ['GPT 5.5 Instant', 'GPT 5.5', 'GPT 5.5 Thinking', 'GPT 5.4'],
-        descs: ['OpenAI chat-latest', 'OpenAI', 'Low reasoning', 'OpenAI'],
+        ids: OPENAI_CHAT_MODELS.map(model => model.id),
+        names: OPENAI_CHAT_MODELS.map(model => model.name),
+        descs: OPENAI_CHAT_MODELS.map(model => model.description),
         pmKey: 'openaiPreferredModel'
     },
     claude: {
         hasKeyCheck: (creds) => !!creds?.hasClaudeKey,
-        ids: ['claude-opus-4-8', 'claude-opus-4-7', 'claude-opus-4-6', 'claude-sonnet-4-6'],
-        names: ['Opus 4.8', 'Opus 4.7', 'Opus 4.6', 'Sonnet 4.6'],
-        descs: ['Anthropic • Highest reasoning', 'Anthropic • Opus', 'Anthropic • Opus', 'Anthropic • Sonnet'],
+        ids: CLAUDE_CHAT_MODELS.map(model => model.id),
+        names: CLAUDE_CHAT_MODELS.map(model => model.name),
+        descs: CLAUDE_CHAT_MODELS.map(model => model.description),
         pmKey: 'claudePreferredModel'
     },
     groq: {
@@ -48,6 +50,8 @@ export const isAllowedStandardCloudModel = (provider: string, modelId: string): 
     return config.ids.includes(modelId);
 };
 
+export const getCloudModelDisplayName = (id: string): string | undefined => getCloudChatModel(id)?.name;
+
 export const CODEX_CLI_MODEL = {
     id: 'codex-cli',
     name: 'Codex CLI',
@@ -55,6 +59,7 @@ export const CODEX_CLI_MODEL = {
 };
 
 export const CODEX_CLI_MODEL_PRESETS = [
+    ...OPENAI_CHAT_MODELS.filter(model => /^gpt-(5\.6|6)/.test(model.id)).map(model => ({ id: model.id, name: model.name })),
     { id: 'gpt-5.5', name: 'ChatGPT 5.5' },
     { id: 'gpt-5.3-codex', name: 'Codex 5.3' },
     { id: 'gpt-5.3-codex-spark', name: 'Codex Spark 5.3' },
@@ -74,5 +79,7 @@ export const getCodexCliModelDisplayName = (id: string): string | null => {
 
 export const prettifyModelId = (id: string): string => {
     if (!id) return '';
+    const known = getCloudChatModel(id);
+    if (known) return known.name;
     return id.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
 };

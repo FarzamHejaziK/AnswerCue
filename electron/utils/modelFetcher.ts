@@ -4,6 +4,7 @@
  */
 
 import axios from 'axios';
+import { ALLOWED_CLAUDE_MODELS } from '../llm/cloudModelCatalog';
 
 export interface ProviderModel {
     id: string;
@@ -11,13 +12,6 @@ export interface ProviderModel {
 }
 
 type Provider = 'gemini' | 'groq' | 'openai' | 'claude' | 'deepseek';
-
-const ALLOWED_CLAUDE_MODELS = new Set([
-    'claude-opus-4-8',
-    'claude-opus-4-7',
-    'claude-opus-4-6',
-    'claude-sonnet-4-6',
-]);
 
 /**
  * Fetch available models from a provider's API.

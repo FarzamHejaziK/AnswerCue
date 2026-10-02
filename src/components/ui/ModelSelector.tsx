@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { ChevronDown, Check, Cloud, Terminal, Monitor, Server, Plus } from 'lucide-react';
-import { getCodexCliModelDisplayName, isAllowedStandardCloudModel, STANDARD_CLOUD_MODELS, prettifyModelId } from '../../utils/modelUtils';
+import { getCodexCliModelDisplayName, getCloudModelDisplayName, isAllowedStandardCloudModel, STANDARD_CLOUD_MODELS, prettifyModelId } from '../../utils/modelUtils';
 
 interface ModelSelectorProps {
     currentModel: string;
@@ -87,6 +87,8 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSe
     const getModelDisplayName = (model: string) => {
         const codexCliName = getCodexCliModelDisplayName(model);
         if (codexCliName) return codexCliName;
+        const cloudName = getCloudModelDisplayName(model);
+        if (cloudName) return cloudName;
         if (model.startsWith('ollama-')) return model.replace('ollama-', '');
         if (model === 'gemini-3.5-flash') return 'Gemini 3.5 Flash';
         if (model === 'gemini-3.1-flash-lite-preview') return 'Gemini 3.1 Flash';

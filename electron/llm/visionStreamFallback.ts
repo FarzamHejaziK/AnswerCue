@@ -32,6 +32,8 @@ export interface VisionStreamProvider {
   name: string;
   isLocal: boolean;
   priority: number;
+  /** Reasoning models may need a longer first-token deadline. */
+  ttftTimeoutMs?: number;
   /** 1-based attempt; cloud families walk model tiers tier1→tier2→tier3. */
   open: (signal: AbortSignal, attempt: number) => AsyncGenerator<string, void, unknown>;
 }
@@ -239,7 +241,7 @@ export async function* runStreamingVisionFallback(
         firstNext.catch(() => { }); // swallow late rejection if the timeout wins
         let ttftTimer: ReturnType<typeof setTimeout> | null = null;
         const ttft = new Promise<never>((_, rej) => {
-          ttftTimer = setTimeout(() => { try { ctrl.abort(); } catch { } rej(new Error('ttft-timeout')); }, cfg.ttftTimeoutMs);
+          ttftTimer = setTimeout(() => { try { ctrl.abort(); } catch { } rej(new Error('ttft-timeout')); }, provider.ttftTimeoutMs ?? cfg.ttftTimeoutMs);
         });
         let first: IteratorResult<string>;
         try {

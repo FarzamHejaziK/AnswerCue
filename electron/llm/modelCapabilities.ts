@@ -108,7 +108,7 @@ export function getModelCapabilities(modelId: string, isOllama: boolean): ModelC
   if (isCloudIdentifier(id)) {
     const b = TIER_BUDGETS['cloud'];
     const supportsImages = lower.startsWith('gemini-') || lower.startsWith('claude-')
-      || lower === 'chat-latest' || lower.startsWith('gpt-4o') || lower.startsWith('gpt-4.1') || lower.startsWith('gpt-5')
+      || lower === 'chat-latest' || lower.startsWith('gpt-4o') || lower.startsWith('gpt-4.1') || /^gpt-[56](?:[.-]|$)/.test(lower)
       || lower === 'natively' || lower.startsWith('natively-');
     return {
       tier: 'cloud',

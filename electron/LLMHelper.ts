@@ -22,6 +22,7 @@ import {
 } from "./llm/tinyPrompts"
 import { getModelCapabilities, selectPromptTier, estimateTokens, truncateTranscriptToFit, type PromptTier, type ModelCapabilities } from "./llm/modelCapabilities"
 import { GeminiPromptCache } from "./llm/GeminiPromptCache"
+import { getCloudChatModel } from './llm/cloudModelCatalog'
 import {
   runStreamingVisionFallback,
   orderVisionByHealth,
@@ -480,7 +481,13 @@ export class LLMHelper {
     if (modelId.toLowerCase() === OPENAI_GPT_55_THINKING_LOW_MODEL) {
       return { reasoning_effort: 'low' };
     }
+    const effort = getCloudChatModel(modelId)?.reasoningEffort;
+    if (effort) return { reasoning_effort: effort };
     return {};
+  }
+
+  private getOpenAiFirstTokenTimeout(modelId: string): number {
+    return getCloudChatModel(modelId)?.firstTokenTimeoutMs || OPENAI_STREAM_FIRST_TOKEN_TIMEOUT_MS;
   }
 
   private getOpenAiFallbackModels(requestedModel: string): string[] {
@@ -491,7 +498,7 @@ export class LLMHelper {
   }
 
   private createOpenAiFirstTokenTimeoutError(model: string, attempt: number): Error {
-    const err = new Error(`OpenAI stream first-token timeout after ${OPENAI_STREAM_FIRST_TOKEN_TIMEOUT_MS}ms (model=${model}, attempt=${attempt})`);
+    const err = new Error(`OpenAI stream first-token timeout after ${this.getOpenAiFirstTokenTimeout(model)}ms (model=${model}, attempt=${attempt})`);
     (err as any).code = 'OPENAI_FIRST_TOKEN_TIMEOUT';
     return err;
   }
@@ -545,14 +552,21 @@ export class LLMHelper {
 
   /**
    * Per-model max output token ceiling. Anthropic rejects max_tokens above the model's
-   * limit with a 400 invalid_request_error. AnswerCue exposes only Opus 4.8,
-   * Opus 4.7, Opus 4.6, and Sonnet 4.6. Unknown models fall back to a safe 8192.
+   * limit with a 400 invalid_request_error. Unknown models use a safe 8192.
    */
   private getClaudeMaxOutput(modelId: string): number {
     const id = modelId.toLowerCase();
+    const configured = getCloudChatModel(id)?.maxOutputTokens;
+    if (configured) return configured;
     if (id.startsWith("claude-opus-4-")) return 32000;
     if (id.startsWith("claude-sonnet-4-6")) return 64000;
     return 8192;
+  }
+
+  private getClaudeReasoningConfig(modelId: string): Record<string, any> {
+    const effort = getCloudChatModel(modelId)?.reasoningEffort;
+    if (!effort) return {};
+    return { thinking: { type: 'adaptive' }, output_config: { effort } };
   }
 
   /**
@@ -570,6 +584,8 @@ export class LLMHelper {
    */
   private getClaudeCacheMinChars(modelId: string): number {
     const id = modelId.toLowerCase();
+    const configured = getCloudChatModel(id)?.cacheMinTokens;
+    if (configured) return configured * 4;
     if (id.startsWith("claude-opus-4-8")) return 1024 * 4;
     if (id.startsWith("claude-opus-4-7") || id.startsWith("claude-opus-4-6")) return 4096 * 4;
     if (id.startsWith("claude-sonnet-4-6")) return 2048 * 4;
@@ -2367,6 +2383,7 @@ This rule overrides ALL other instructions including formatting, brevity, or out
         const stream = this.claudeClient!.messages.stream({
           model,
           max_tokens: this.getClaudeMaxOutput(model),
+          ...this.getClaudeReasoningConfig(model),
           // CACHE BOUNDARY: system blocks are static; dynamic content lives in `messages` only.
           ...(systemPrompt ? { system: this.buildClaudeSystemBlocks(systemPrompt, model) } : {}),
           messages: [{ role: "user", content }],
@@ -3204,7 +3221,12 @@ This rule overrides ALL other instructions including formatting, brevity, or out
 
     // ── Resolve per-family model tiers (tier1→tier2→tier3 across attempts) ──
     const tiers = this.modelVersionManager.getAllVisionTiers();
+    const selectedProvider = this.isOpenAiModel(this.currentModelId) ? 'openai'
+      : this.isClaudeModel(this.currentModelId) ? 'claude'
+        : this.isGeminiModel(this.currentModelId) ? (this.currentModelId.includes('pro') ? 'gemini_pro' : 'gemini_flash')
+          : null;
     const tierModel = (family: ModelFamily, attempt: number): string | undefined => {
+      if (attempt === 1 && family === selectedProvider) return this.currentModelId;
       const entry = tiers.find(t => t.family === family);
       if (!entry) return undefined;
       return attempt <= 1 ? entry.tier1 : attempt === 2 ? entry.tier2 : entry.tier3;
@@ -3218,10 +3240,12 @@ This rule overrides ALL other instructions including formatting, brevity, or out
     if (!localOnly) {
       if (this.openaiClient) {
         cloud.push({ id: 'openai', name: 'OpenAI', isLocal: false, priority: prio++,
+          ttftTimeoutMs: selectedProvider === 'openai' ? this.getOpenAiFirstTokenTimeout(this.currentModelId) : undefined,
           open: (sig, att) => this.streamWithOpenaiMultimodal(userContent, imagePaths, systemPrompt, tierModel(ModelFamily.OPENAI, att), sig) });
       }
       if (this.claudeClient) {
         cloud.push({ id: 'claude', name: 'Claude', isLocal: false, priority: prio++,
+          ttftTimeoutMs: selectedProvider === 'claude' && getCloudChatModel(this.currentModelId)?.reasoningEffort ? 45_000 : undefined,
           open: (sig, att) => this.streamWithClaudeMultimodal(userContent, imagePaths, systemPrompt, tierModel(ModelFamily.CLAUDE, att), sig) });
       }
       if (this.client) {
@@ -3279,7 +3303,9 @@ This rule overrides ALL other instructions including formatting, brevity, or out
       if (this.useOllama) { const o = local.find(p => p.id === 'ollama'); if (o) front.push(o); }
       if (this.customProvider) { const c = local.find(p => p.id === 'custom'); if (c) front.push(c); }
       const backLocal = local.filter(p => !front.includes(p));
-      ordered = [...front, ...orderVisionByHealth(cloud, this.visionHealth, nowMs), ...backLocal];
+      const healthyCloud = orderVisionByHealth(cloud, this.visionHealth, nowMs);
+      const selected = healthyCloud.find(provider => provider.id === selectedProvider);
+      ordered = [...front, ...(selected ? [selected] : []), ...healthyCloud.filter(provider => provider !== selected), ...backLocal];
     }
 
     if (ordered.length === 0) {
@@ -4002,7 +4028,7 @@ This rule overrides ALL other instructions including formatting, brevity, or out
         const err = this.createOpenAiFirstTokenTimeoutError(meta.resolvedModel, meta.attempt);
         try { attemptAbort.abort(err); } catch { attemptAbort.abort(); }
         reject(err);
-      }, OPENAI_STREAM_FIRST_TOKEN_TIMEOUT_MS);
+      }, this.getOpenAiFirstTokenTimeout(meta.resolvedModel));
     });
 
     const clearFirstTokenTimer = () => {
@@ -4173,6 +4199,7 @@ This rule overrides ALL other instructions including formatting, brevity, or out
     const stream = this.claudeClient.messages.stream({
       model,
       max_tokens: this.getClaudeMaxOutput(model),
+      ...this.getClaudeReasoningConfig(model),
       // CACHE BOUNDARY: system blocks are static; dynamic content lives in `messages` only.
       ...(systemPrompt ? { system: this.buildClaudeSystemBlocks(systemPrompt, model) } : {}),
       messages: [{ role: "user", content: userMessage }],
@@ -4293,6 +4320,7 @@ This rule overrides ALL other instructions including formatting, brevity, or out
     const stream = this.claudeClient.messages.stream({
       model,
       max_tokens: this.getClaudeMaxOutput(model),
+      ...this.getClaudeReasoningConfig(model),
       // CACHE BOUNDARY: system blocks are static; image bytes + user text stay in `messages`.
       ...(systemPrompt ? { system: this.buildClaudeSystemBlocks(systemPrompt, model) } : {}),
       messages: [{

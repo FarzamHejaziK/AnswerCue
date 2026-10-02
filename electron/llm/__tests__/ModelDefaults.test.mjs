@@ -9,11 +9,14 @@ const repoRoot = path.resolve(__dirname, '../../..');
 const read = rel => fs.readFileSync(path.join(repoRoot, rel), 'utf8');
 const importDist = rel => import(pathToFileURL(path.join(repoRoot, 'dist-electron/electron', rel)).href);
 
-test('standard cloud model list exposes the API-valid GPT 5.5 Instant and Gemini 3.5 Flash IDs', () => {
+test('standard cloud model list exposes the API-valid GPT 5.5 Instant and Gemini 3.5 Flash IDs', async () => {
   const src = read('src/utils/modelUtils.ts');
+  const { OPENAI_CHAT_MODELS } = await importDist('llm/cloudModelCatalog.js');
 
-  assert.match(src, /ids:\s*\['chat-latest', 'gpt-5\.5', 'gpt-5\.5-thinking-low', 'gpt-5\.4'\]/);
-  assert.match(src, /names:\s*\['GPT 5\.5 Instant', 'GPT 5\.5', 'GPT 5\.5 Thinking', 'GPT 5\.4'\]/);
+  for (const id of ['chat-latest', 'gpt-5.5', 'gpt-5.5-thinking-low', 'gpt-5.4']) {
+    assert.ok(OPENAI_CHAT_MODELS.some(model => model.id === id), `legacy model ${id} stays available`);
+  }
+  assert.equal(OPENAI_CHAT_MODELS.find(model => model.id === 'chat-latest').name, 'GPT 5.5 Instant');
   assert.match(src, /ids:\s*\['gemini-3.5-flash', 'gemini-3\.1-flash-lite-preview', 'gemini-3\.1-pro-preview'\]/);
   assert.match(src, /names:\s*\['Gemini 3\.5 Flash', 'Gemini 3\.1 Flash', 'Gemini 3\.1 Pro'\]/);
 });

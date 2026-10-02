@@ -23,6 +23,7 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import { ALLOWED_CLAUDE_MODELS } from '../llm/cloudModelCatalog';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -100,13 +101,6 @@ const TEXT_BASELINE_MODELS: Record<TextModelFamily, string> = {
   [TextModelFamily.CLAUDE]: 'claude-sonnet-4-6',
   [TextModelFamily.GROQ]: 'llama-3.3-70b-versatile',
 };
-
-const ALLOWED_CLAUDE_MODELS = new Set([
-  'claude-opus-4-8',
-  'claude-opus-4-7',
-  'claude-opus-4-6',
-  'claude-sonnet-4-6',
-]);
 
 /** Vision-capable model ordering for screenshot analysis */
 export const VISION_PROVIDER_ORDER: ModelFamily[] = [
@@ -278,7 +272,7 @@ export function classifyModel(modelId: string): ModelFamily | null {
     return ModelFamily.GEMINI_PRO;
   }
 
-  // Claude is intentionally limited to the latest three Opus models plus Sonnet 4.6.
+  // Match the same Claude catalog exposed in the model selectors.
   if (ALLOWED_CLAUDE_MODELS.has(lower)) {
     return ModelFamily.CLAUDE;
   }
@@ -313,7 +307,7 @@ export function classifyTextModel(modelId: string): TextModelFamily | null {
     return TextModelFamily.GEMINI_PRO;
   }
 
-  // Claude is intentionally limited to the latest three Opus models plus Sonnet 4.6.
+  // Match the same Claude catalog exposed in the model selectors.
   if (ALLOWED_CLAUDE_MODELS.has(lower)) {
     return TextModelFamily.CLAUDE;
   }

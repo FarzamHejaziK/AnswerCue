@@ -85,7 +85,7 @@ import {
 } from '../lib/overlayAppearance';
 import { NegotiationCoachingCard } from '../premium';
 import type { DynamicActionPayload } from '../types/electron';
-import { getCodexCliModelDisplayName } from '../utils/modelUtils';
+import { getCodexCliModelDisplayName, getCloudModelDisplayName } from '../utils/modelUtils';
 import { getModifierSymbol, isMac } from '../utils/platformUtils';
 import { DynamicActionBar } from './dynamic-actions/DynamicActionBar';
 import GlassEffectLayer from './ui/GlassEffectLayer';
@@ -4921,6 +4921,8 @@ Provide only the answer, nothing else.`;
                           const m = currentModel;
                           const codexCliName = getCodexCliModelDisplayName(m);
                           if (codexCliName) return codexCliName;
+                          const cloudName = getCloudModelDisplayName(m);
+                          if (cloudName) return cloudName;
                           if (m.startsWith('ollama-')) return m.replace('ollama-', '');
                           if (m === 'gemini-3.5-flash') return 'Gemini 3.5 Flash';
                           if (m === 'gemini-3.1-flash-lite-preview') return 'Gemini 3.1 Flash';
