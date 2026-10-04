@@ -8,22 +8,27 @@ export interface CloudChatModel {
   cacheMinTokens?: number;
 }
 
+export const DEFAULT_OPENAI_MODEL = 'gpt-6.1-sol';
+export const DEFAULT_CLAUDE_MODEL = 'claude-opus-5-5';
+
+export function isRetiredOpenAiModel(modelId?: string): boolean {
+  const id = modelId?.trim().toLowerCase() || '';
+  return id === 'chat-latest' || /^gpt-5\.5(?:-|$)/.test(id);
+}
+
 // Shared by the settings, model selectors, discovery, and request builder.
 export const OPENAI_CHAT_MODELS: CloudChatModel[] = [
-  { id: 'chat-latest', name: 'GPT 5.5 Instant', description: 'OpenAI chat-latest' },
+  { id: DEFAULT_OPENAI_MODEL, name: 'GPT 6.1 Sol', description: 'Balanced - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
   { id: 'gpt-6-astra', name: 'GPT 6 Astra', description: 'Highest intelligence - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
-  { id: 'gpt-6.1-sol', name: 'GPT 6.1 Sol', description: 'Balanced - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
   { id: 'gpt-6-luna', name: 'GPT 6 Luna', description: 'Efficient - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
   { id: 'gpt-5.6-sol', name: 'GPT 5.6 Sol', description: 'Flagship - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
   { id: 'gpt-5.6-terra', name: 'GPT 5.6 Terra', description: 'Balanced - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
   { id: 'gpt-5.6-luna', name: 'GPT 5.6 Luna', description: 'Efficient - Low reasoning', reasoningEffort: 'low', firstTokenTimeoutMs: 45_000 },
-  { id: 'gpt-5.5', name: 'GPT 5.5', description: 'OpenAI' },
-  { id: 'gpt-5.5-thinking-low', name: 'GPT 5.5 Thinking', description: 'Low reasoning', reasoningEffort: 'low' },
   { id: 'gpt-5.4', name: 'GPT 5.4', description: 'OpenAI' },
 ];
 
 export const CLAUDE_CHAT_MODELS: CloudChatModel[] = [
-  { id: 'claude-opus-5-5', name: 'Opus 5.5', description: 'Anthropic - Low reasoning', reasoningEffort: 'low', maxOutputTokens: 64_000, cacheMinTokens: 512 },
+  { id: DEFAULT_CLAUDE_MODEL, name: 'Opus 5.5', description: 'Anthropic - Low reasoning', reasoningEffort: 'low', maxOutputTokens: 64_000, cacheMinTokens: 512 },
   { id: 'claude-opus-5', name: 'Opus 5', description: 'Anthropic - Low reasoning', reasoningEffort: 'low', maxOutputTokens: 64_000, cacheMinTokens: 512 },
   { id: 'claude-sonnet-5-5', name: 'Sonnet 5.5', description: 'Anthropic - Fast - Low reasoning', reasoningEffort: 'low', maxOutputTokens: 64_000, cacheMinTokens: 512 },
   { id: 'claude-sonnet-5', name: 'Sonnet 5', description: 'Anthropic - Fast - Low reasoning', reasoningEffort: 'low', maxOutputTokens: 64_000, cacheMinTokens: 1024 },

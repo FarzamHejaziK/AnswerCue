@@ -1,3 +1,5 @@
+import { DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL } from './cloudModelCatalog';
+
 export type LLMProviderId = 'natively' | 'groq' | 'codex' | 'gemini_flash' | 'gemini_pro' | 'openai' | 'claude' | 'deepseek' | 'ollama';
 export type ProviderCapability = 'chat' | 'stream_chat' | 'structured' | 'vision';
 export type ProviderAttemptStatus = 'available' | 'unavailable';
@@ -418,8 +420,8 @@ export class ProviderRouter {
         const models: Record<string, string> = {
             'gemini': 'gemini-3.5-flash',
             'groq': 'llama-3.3-70b-versatile',
-            'openai': 'chat-latest',
-            'claude': 'claude-sonnet-4-6',
+            'openai': DEFAULT_OPENAI_MODEL,
+            'claude': DEFAULT_CLAUDE_MODEL,
             'deepseek': 'deepseek-v4-flash',
             'natively': 'default',
             'codex': 'default'

@@ -22,7 +22,7 @@ import {
 } from "./llm/tinyPrompts"
 import { getModelCapabilities, selectPromptTier, estimateTokens, truncateTranscriptToFit, type PromptTier, type ModelCapabilities } from "./llm/modelCapabilities"
 import { GeminiPromptCache } from "./llm/GeminiPromptCache"
-import { getCloudChatModel } from './llm/cloudModelCatalog'
+import { DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL, getCloudChatModel } from './llm/cloudModelCatalog'
 import {
   runStreamingVisionFallback,
   orderVisionByHealth,
@@ -61,13 +61,13 @@ type CurrentLlmProvider = "ollama" | "gemini" | "custom" | "codex-cli" | "native
 const GEMINI_FLASH_MODEL = "gemini-3.5-flash"
 const GEMINI_PRO_MODEL = "gemini-3.1-pro-preview"
 const GROQ_MODEL = "llama-3.3-70b-versatile"
-const OPENAI_MODEL = "chat-latest"
+const OPENAI_MODEL = DEFAULT_OPENAI_MODEL
 const OPENAI_GPT_55_MODEL = "gpt-5.5"
 const OPENAI_GPT_55_THINKING_LOW_MODEL = "gpt-5.5-thinking-low"
 const OPENAI_STREAM_FIRST_TOKEN_TIMEOUT_MS = 8_000
 const OPENAI_STREAM_MAX_ATTEMPTS_PER_MODEL = 2
 const OPENAI_STREAM_FALLBACK_MODEL = "gpt-5.4"
-const CLAUDE_MODEL = "claude-sonnet-4-6"
+const CLAUDE_MODEL = DEFAULT_CLAUDE_MODEL
 const DEEPSEEK_MODEL = "deepseek-v4-flash"
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com"
 const DEEPSEEK_MAX_OUTPUT_TOKENS = 8192

@@ -6,14 +6,15 @@
 import { app, safeStorage } from 'electron';
 import fs from 'fs';
 import path from 'path';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL, isRetiredOpenAiModel } from '../llm/cloudModelCatalog';
 
 const CREDENTIALS_PATH = path.join(app.getPath('userData'), 'credentials.enc');
 const FALLBACK_DEFAULT_MODEL = 'gemini-3.5-flash';
 const DEFAULT_MODEL_BY_PROVIDER: Record<string, string> = {
     natively: 'natively',
-    openai: 'chat-latest',
+    openai: DEFAULT_OPENAI_MODEL,
     gemini: FALLBACK_DEFAULT_MODEL,
-    claude: 'claude-sonnet-4-6',
+    claude: DEFAULT_CLAUDE_MODEL,
     groq: 'llama-3.3-70b-versatile',
     deepseek: 'deepseek-v4-flash',
 };
@@ -106,8 +107,12 @@ export class CredentialsManager {
     public init(): void {
         this.loadCredentials();
         const beforeDefault = this.credentials.defaultModel;
+        const beforePreferred = this.credentials.openaiPreferredModel;
+        if (isRetiredOpenAiModel(beforePreferred)) {
+            this.credentials.openaiPreferredModel = DEFAULT_OPENAI_MODEL;
+        }
         this.ensureDefaultModelCanRun();
-        if (this.credentials.defaultModel !== beforeDefault) {
+        if (this.credentials.defaultModel !== beforeDefault || this.credentials.openaiPreferredModel !== beforePreferred) {
             this.saveCredentials();
         }
         console.log('[CredentialsManager] Initialized');
@@ -229,7 +234,7 @@ export class CredentialsManager {
     private getProviderForModel(modelId?: string): string | null {
         if (!modelId) return null;
         if (modelId === 'natively') return 'natively';
-        if (modelId === DEFAULT_MODEL_BY_PROVIDER.openai || modelId.startsWith('gpt-')) return 'openai';
+        if (modelId === 'chat-latest' || modelId.startsWith('gpt-')) return 'openai';
         if (modelId.startsWith('gemini-') || modelId.startsWith('models/')) return 'gemini';
         if (modelId.startsWith('claude-')) return 'claude';
         if (
@@ -283,6 +288,7 @@ export class CredentialsManager {
 
     private resolveDefaultModel(): string | null {
         const current = this.credentials.defaultModel;
+        if (isRetiredOpenAiModel(current) && this.isProviderConfigured('openai')) return DEFAULT_OPENAI_MODEL;
         if (current && this.isProviderConfigured(this.getProviderForModel(current))) return current;
         return this.firstConfiguredDefaultModel();
     }

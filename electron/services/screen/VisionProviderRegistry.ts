@@ -19,6 +19,7 @@ import type {
   VisionMode,
 } from './VisionProviderFallbackChain';
 import { CredentialsManager } from '../CredentialsManager';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL } from '../../llm/cloudModelCatalog';
 
 export interface VisionProviderBuildInputs {
   mode: VisionMode;
@@ -77,7 +78,7 @@ function openai(creds: CredentialsManager, _inputs: VisionProviderBuildInputs): 
   return {
     id: 'openai',
     displayName: 'OpenAI',
-    modelId: 'chat-latest',
+    modelId: DEFAULT_OPENAI_MODEL,
     isLocal: false,
     isConfigured: !!apiKey,
     supportsVision: !!apiKey,
@@ -107,7 +108,7 @@ function claude(creds: CredentialsManager, _inputs: VisionProviderBuildInputs): 
   return {
     id: 'claude',
     displayName: 'Claude',
-    modelId: 'claude-sonnet-4-6',
+    modelId: DEFAULT_CLAUDE_MODEL,
     isLocal: false,
     isConfigured: !!apiKey,
     supportsVision: !!apiKey,

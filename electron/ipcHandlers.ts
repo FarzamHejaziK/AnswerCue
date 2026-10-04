@@ -18,6 +18,7 @@ import { SkillsManager } from './services/SkillsManager';
 import { TRIAL_SENTINEL_KEY } from './config/constants';
 import { AI_RESPONSE_LANGUAGES, RECOGNITION_LANGUAGES } from './config/languages';
 import { CHAT_MODE_PROMPT } from './llm/prompts';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL } from './llm/cloudModelCatalog';
 
 const DEBUG_LOG_FILE_NAME = 'answercue_debug.log';
 
@@ -2814,7 +2815,7 @@ export function initializeIpcHandlers(appState: AppState): void {
           response = await axios.post(
             'https://api.openai.com/v1/chat/completions',
             {
-              model: 'chat-latest',
+              model: DEFAULT_OPENAI_MODEL,
               messages: [{ role: 'user', content: 'Hello' }],
               max_completion_tokens: 10,
             },
@@ -2827,7 +2828,7 @@ export function initializeIpcHandlers(appState: AppState): void {
           response = await axios.post(
             'https://api.anthropic.com/v1/messages',
             {
-              model: 'claude-sonnet-4-6',
+              model: DEFAULT_CLAUDE_MODEL,
               max_tokens: 10,
               messages: [{ role: 'user', content: 'Hello' }],
             },

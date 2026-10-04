@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.8.1] - 2026-10-04
+
+### Model Defaults and Selection
+
+- New OpenAI setups default to GPT 6.1 Sol; new Claude setups default to Opus 5.5. Google remains Gemini 3.5 Flash.
+- First-run setup saves its model choice so it survives restarts and interview completion.
+- Shared defaults align onboarding, Settings, backend requests, connection checks, and text/screenshot fallback baselines.
+- Removed GPT 5.5, GPT 5.5 Thinking, and the GPT 5.5 Instant alias from model lists, discovery, and Codex CLI presets. Claude Opus 5.5 remains available.
+- Saved retired GPT 5.5 defaults and OpenAI preferences migrate to GPT 6.1 Sol on startup. Other valid saved choices remain unchanged.
+- No changes to the live interview shell's appearance.
+
+See [.github/releases/v2.8.1.md](.github/releases/v2.8.1.md) for verification, platform details, signing status, and known limitations.
+
 ## [2.8.0] - 2026-10-02
 
 ### Workspace Refresh

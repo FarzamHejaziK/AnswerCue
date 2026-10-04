@@ -4,7 +4,7 @@
  */
 
 import axios from 'axios';
-import { ALLOWED_CLAUDE_MODELS } from '../llm/cloudModelCatalog';
+import { ALLOWED_CLAUDE_MODELS, isRetiredOpenAiModel } from '../llm/cloudModelCatalog';
 
 export interface ProviderModel {
     id: string;
@@ -47,11 +47,10 @@ async function fetchOpenAIModels(apiKey: string): Promise<ProviderModel[]> {
 
     const models: any[] = response.data?.data || [];
 
-    // Only include: ChatGPT latest alias, gpt-4o series, gpt-5.x+, o1, o3, o4 series
+    // Include supported chat families, excluding retired GPT 5.5 options.
     const filtered = models.filter((m: any) => {
         const id = (m.id || '').toLowerCase();
-        // Include the API alias for GPT 5.5 Instant
-        if (id === 'chat-latest') return true;
+        if (isRetiredOpenAiModel(id)) return false;
         // Include gpt-4o variants
         if (id.includes('gpt-4o')) return true;
         // Include gpt-5 and above

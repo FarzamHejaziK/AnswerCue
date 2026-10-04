@@ -23,7 +23,7 @@
 import { app } from 'electron';
 import path from 'path';
 import fs from 'fs';
-import { ALLOWED_CLAUDE_MODELS } from '../llm/cloudModelCatalog';
+import { ALLOWED_CLAUDE_MODELS, DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL } from '../llm/cloudModelCatalog';
 
 // ─── Types ──────────────────────────────────────────────────────────────
 
@@ -86,19 +86,19 @@ interface PersistedState {
 
 /** Hardcoded baseline models for vision Tier 1 (initial pinned stable) */
 const BASELINE_MODELS: Record<ModelFamily, string> = {
-  [ModelFamily.OPENAI]: 'chat-latest',
+  [ModelFamily.OPENAI]: DEFAULT_OPENAI_MODEL,
   [ModelFamily.GEMINI_FLASH]: 'gemini-3.5-flash',
   [ModelFamily.GEMINI_PRO]: 'gemini-3.1-pro-preview',
-  [ModelFamily.CLAUDE]: 'claude-sonnet-4-6',
+  [ModelFamily.CLAUDE]: DEFAULT_CLAUDE_MODEL,
   [ModelFamily.GROQ_LLAMA]: 'meta-llama/llama-4-scout-17b-16e-instruct',
 };
 
 /** Hardcoded baseline models for text Tier 1 */
 const TEXT_BASELINE_MODELS: Record<TextModelFamily, string> = {
-  [TextModelFamily.OPENAI]: 'chat-latest',
+  [TextModelFamily.OPENAI]: DEFAULT_OPENAI_MODEL,
   [TextModelFamily.GEMINI_FLASH]: 'gemini-3.5-flash',
   [TextModelFamily.GEMINI_PRO]: 'gemini-3.1-pro-preview',
-  [TextModelFamily.CLAUDE]: 'claude-sonnet-4-6',
+  [TextModelFamily.CLAUDE]: DEFAULT_CLAUDE_MODEL,
   [TextModelFamily.GROQ]: 'llama-3.3-70b-versatile',
 };
 

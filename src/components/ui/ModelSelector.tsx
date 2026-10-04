@@ -103,9 +103,6 @@ export const ModelSelector: React.FC<ModelSelectorProps> = ({ currentModel, onSe
         if (model === 'gemini-3.1-flash-lite-preview') return 'Gemini 3.1 Flash';
         if (model === 'gemini-3.1-pro-preview') return 'Gemini 3.1 Pro';
         if (model === 'llama-3.3-70b-versatile') return 'Groq Llama 3.3';
-        if (model === 'chat-latest') return 'GPT 5.5 Instant';
-        if (model === 'gpt-5.5') return 'GPT 5.5';
-        if (model === 'gpt-5.5-thinking-low') return 'GPT 5.5 Thinking';
         if (model === 'gpt-5.4') return 'GPT 5.4';
         if (model === 'claude-opus-4-8') return 'Opus 4.8';
         if (model === 'claude-opus-4-7') return 'Opus 4.7';

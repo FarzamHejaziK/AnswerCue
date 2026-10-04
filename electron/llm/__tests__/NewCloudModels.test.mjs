@@ -17,10 +17,11 @@ Module._load = function(id, ...args) {
   return originalLoad.call(this, id, ...args);
 };
 const { LLMHelper } = require(path.join(root, 'dist-electron/electron/LLMHelper.js'));
+const { ModelVersionManager, ModelFamily, TextModelFamily, classifyModel, classifyTextModel } =
+  require(path.join(root, 'dist-electron/electron/services/ModelVersionManager.js'));
 Module._load = originalLoad;
 const { OPENAI_CHAT_MODELS, CLAUDE_CHAT_MODELS } = require(path.join(root, 'dist-electron/electron/llm/cloudModelCatalog.js'));
 const { getModelCapabilities } = require(path.join(root, 'dist-electron/electron/llm/modelCapabilities.js'));
-const { classifyModel, classifyTextModel } = require(path.join(root, 'dist-electron/electron/services/ModelVersionManager.js'));
 const { runStreamingVisionFallback, DEFAULT_VISION_FALLBACK_CONFIG } = require(path.join(root, 'dist-electron/electron/llm/visionStreamFallback.js'));
 after(() => fs.rmSync(fixtureDir, { recursive: true, force: true }));
 
@@ -57,6 +58,24 @@ function mockHelper() {
   } } };
   return { helper, calls };
 }
+
+for (const [provider, expected] of [['openai', 'gpt-6.1-sol'], ['claude', 'claude-opus-5-5']]) {
+  test(`${provider} requests without a model override use the new provider default`, async () => {
+    const { helper, calls } = mockHelper();
+    const method = provider === 'openai' ? 'generateWithOpenai' : 'generateWithClaude';
+    assert.equal(await helper[method]('Question', 'System contract'), 'answer');
+    assert.equal(calls[0].request.model, expected);
+    assert.equal(provider === 'openai' ? calls[0].request.reasoning_effort : calls[0].request.output_config.effort, 'low');
+  });
+}
+
+test('new installs use matching text and vision model baselines', () => {
+  const versions = new ModelVersionManager();
+  assert.equal(versions.getTieredModels(ModelFamily.OPENAI).tier1, 'gpt-6.1-sol');
+  assert.equal(versions.getTieredModels(ModelFamily.CLAUDE).tier1, 'claude-opus-5-5');
+  assert.equal(versions.getTextTieredModels(TextModelFamily.OPENAI).tier1, 'gpt-6.1-sol');
+  assert.equal(versions.getTextTieredModels(TextModelFamily.CLAUDE).tier1, 'claude-opus-5-5');
+});
 
 for (const model of newModels) {
   const provider = model.id.startsWith('claude-') ? 'claude' : 'openai';

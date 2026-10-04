@@ -3,6 +3,7 @@ import { ToggleLeft, ToggleRight, Search, ArrowRight, ArrowLeft, MoreHorizontal,
 import { generateMeetingPDF } from '../utils/pdfGenerator';
 import icon from "./icon.png";
 import { ModelSelector } from './ui/ModelSelector';
+import { DEFAULT_OPENAI_MODEL, DEFAULT_CLAUDE_MODEL } from '../../electron/llm/cloudModelCatalog';
 import TopSearchPill from './TopSearchPill';
 import GlobalChatOverlay from './GlobalChatOverlay';
 import HelpAssistant from './help/HelpAssistant';
@@ -2978,8 +2979,8 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
     };
 
     const getPreferredPreflightModel = (status: ProviderKeyStatus) => {
-        if (status.openai) return 'chat-latest';
-        if (status.claude) return 'claude-opus-4-8';
+        if (status.openai) return DEFAULT_OPENAI_MODEL;
+        if (status.claude) return DEFAULT_CLAUDE_MODEL;
         if (status.gemini) return 'gemini-3.5-flash';
         return null;
     };
@@ -3049,8 +3050,12 @@ const Launcher: React.FC<LauncherProps> = ({ onStartMeeting, onOpenSettings, onP
             };
             const preferredModel = !readiness.aiReady ? getPreferredPreflightModel(nextStatus) : null;
             if (preferredModel) {
+                const result = await window.electronAPI.setDefaultModel(preferredModel);
+                if (!result?.success) {
+                    setProviderKeyError(result?.error || 'Could not save the default model.');
+                    return;
+                }
                 setCurrentModel(preferredModel);
-                await window.electronAPI.setModel?.(preferredModel);
             }
 
             setProviderKeyDrafts(EMPTY_PROVIDER_KEY_DRAFTS);

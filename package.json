@@ -1,6 +1,6 @@
 {
   "name": "answercue",
-  "version": "2.8.0",
+  "version": "2.8.1",
   "main": "dist-electron/electron/main.js",
   "description": "AnswerCue is a live interview assistant that helps prepare context, transcribe conversations, and generate AI-guided answers.",
   "scripts": {

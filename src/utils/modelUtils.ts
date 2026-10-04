@@ -60,7 +60,6 @@ export const CODEX_CLI_MODEL = {
 
 export const CODEX_CLI_MODEL_PRESETS = [
     ...OPENAI_CHAT_MODELS.filter(model => /^gpt-(5\.6|6)/.test(model.id)).map(model => ({ id: model.id, name: model.name })),
-    { id: 'gpt-5.5', name: 'ChatGPT 5.5' },
     { id: 'gpt-5.3-codex', name: 'Codex 5.3' },
     { id: 'gpt-5.3-codex-spark', name: 'Codex Spark 5.3' },
     { id: 'gpt-5.4', name: 'ChatGPT 5.4' },
